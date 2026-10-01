@@ -42,3 +42,17 @@ class AstronomicalObject(BaseModel):
     def alias(self, namespace: str) -> str | None:
         ns = namespace.upper()
         return next((a.identifier for a in self.aliases if a.namespace == ns), None)
+
+
+class CrossmatchLink(BaseModel):
+    """Evidence for an identification itself (how we decided two records are one object)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    object_id: UUID
+    other_namespace: str
+    other_identifier: str
+    separation_arcsec: float = Field(ge=0.0)
+    method: str  # "simbad_alias" | "gaia_cone_pm_propagated" | ...
+    ambiguous: bool = False
+    n_candidates: int = 1

@@ -9,7 +9,7 @@ from .assessment import (
     TriageReason,
 )
 from .evidence import Creator, Evidence
-from .objects import AstronomicalObject, ObjectAlias
+from .objects import AstronomicalObject, CrossmatchLink, ObjectAlias
 from .observation import Observation
 from .provenance import ProvenanceEdge, ProvenanceRecord
 
@@ -18,6 +18,7 @@ __all__ = [
     "Assessment",
     "AstronomicalObject",
     "Creator",
+    "CrossmatchLink",
     "DataQuality",
     "Evidence",
     "KnownStatus",

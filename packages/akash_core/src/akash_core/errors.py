@@ -16,3 +16,11 @@ class AmbiguousIdentity(AkashError):
     def __init__(self, message: str, candidates: list[str] | None = None) -> None:
         super().__init__(message)
         self.candidates = candidates or []
+
+
+class ObjectNotFound(AkashError):
+    """No object matched the query."""
+
+
+class CircuitOpen(ProviderError):
+    """Provider circuit breaker is open; calls are being shed."""
