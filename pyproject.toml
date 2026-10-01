@@ -3,7 +3,7 @@ name = "akash"
 version = "0.0.1"
 description = "AKASH: AI Astronomical Discovery Engine (workspace root)"
 requires-python = ">=3.11"
-dependencies = ["akash-core", "akash-api"]
+dependencies = ["akash-core", "akash-api", "akash-data", "akash-provenance"]
 
 [tool.uv.workspace]
 members = ["packages/*", "services/*"]
@@ -11,13 +11,16 @@ members = ["packages/*", "services/*"]
 [tool.uv.sources]
 akash-core = { workspace = true }
 akash-api = { workspace = true }
+akash-data = { workspace = true }
+akash-provenance = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-cov", "httpx>=0.27", "ruff>=0.6", "mypy>=1.11"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages", "services", "tests"]
-addopts = "-q"
+addopts = "-q -m 'not network'"
+markers = ["network: hits real archives (run with -m network)"]
 
 [tool.ruff]
 line-length = 100
@@ -26,6 +29,15 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["E501", "B017", "F401"]
+"scripts/**" = ["E501"]
+"tests/**" = ["E501"]
+
+[[tool.mypy.overrides]]
+module = ["astropy.*"]
+ignore_missing_imports = true

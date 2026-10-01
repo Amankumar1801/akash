@@ -8,5 +8,5 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --all-packages
       - run: uv run ruff check .
-      - run: uv run mypy packages/akash_core/src
+      - run: uv run mypy packages/akash_core/src packages/akash_provenance/src packages/akash_data/src
       - run: uv run pytest

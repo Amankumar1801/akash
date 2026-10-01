@@ -14,3 +14,6 @@ class Settings(BaseSettings):
     llm_api_key: str = Field(default="", repr=False)
     llm_model: str = ""
     pipeline_version: str = "0.0.1"
+    data_dir: str = "./data"
+    sqlite_path: str = "./data/akash.sqlite3"
+    contact_email: str = ""  # included in the User-Agent so archives can reach you

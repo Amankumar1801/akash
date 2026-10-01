@@ -5,7 +5,9 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 **AKASH assists investigation; it does not independently establish discoveries.**
 
 ## Status
-Phase 0 complete: workspace, CI, local stack, core schemas. Next: Phase 1 (data layer).
+Phase 0 complete (workspace, CI, core schemas). Phase 1 complete in code (identity resolver, SIMBAD/Gaia/
+Exoplanet Archive/MAST TESS+Kepler providers, caching, retries, validation, provenance), **pending live
+verification** against the real archives: run `uv run pytest -m network tests/live` (see ADR 0002).
 
 ## Quickstart
 ```bash
@@ -17,6 +19,8 @@ make dev        # API on :8000  ->  GET /v1/health
 
 ## Layout
 - `packages/akash_core`: schemas, enums, ids, config (no web/ML deps)
+- `packages/akash_data`: identity, providers, storage, ingestion
+- `packages/akash_provenance`: provenance records + lineage
 - `services/api`: FastAPI service (thin routers)
 - `docs/adr`: architecture decision records
 - `infra/compose`: local dependencies

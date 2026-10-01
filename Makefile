@@ -5,4 +5,6 @@ down:       ; docker compose -f infra/compose/docker-compose.yml down
 dev:        ; uv run uvicorn akash_api.main:app --reload --port 8000
 test:       ; uv run pytest
 lint:       ; uv run ruff check .
-typecheck:  ; uv run mypy packages/akash_core/src
+typecheck:  ; uv run mypy packages/akash_core/src packages/akash_provenance/src packages/akash_data/src
+
+live:       ; uv run pytest -m network tests/live
