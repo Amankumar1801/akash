@@ -14,6 +14,7 @@ members = [
     "akash-core",
     "akash-data",
     "akash-provenance",
+    "akash-science",
 ]
 
 [[package]]
@@ -25,6 +26,7 @@ dependencies = [
     { name = "akash-core" },
     { name = "akash-data" },
     { name = "akash-provenance" },
+    { name = "akash-science" },
 ]
 
 [package.dev-dependencies]
@@ -42,6 +44,7 @@ requires-dist = [
     { name = "akash-core", editable = "packages/akash_core" },
     { name = "akash-data", editable = "packages/akash_data" },
     { name = "akash-provenance", editable = "packages/akash_provenance" },
+    { name = "akash-science", editable = "packages/akash_science" },
 ]
 
 [package.metadata.requires-dev]
@@ -117,6 +120,28 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "akash-core", editable = "packages/akash_core" }]
+
+[[package]]
+name = "akash-science"
+version = "0.0.1"
+source = { editable = "packages/akash_science" }
+dependencies = [
+    { name = "akash-core" },
+    { name = "akash-data" },
+    { name = "akash-provenance" },
+    { name = "astropy" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "akash-core", editable = "packages/akash_core" },
+    { name = "akash-data", editable = "packages/akash_data" },
+    { name = "akash-provenance", editable = "packages/akash_provenance" },
+    { name = "astropy", specifier = ">=6.0" },
+    { name = "numpy", specifier = ">=1.26" },
+]
 
 [[package]]
 name = "annotated-doc"

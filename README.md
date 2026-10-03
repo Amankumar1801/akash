@@ -5,9 +5,13 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 **AKASH assists investigation; it does not independently establish discoveries.**
 
 ## Status
-Phase 0 complete (workspace, CI, core schemas). Phase 1 complete in code (identity resolver, SIMBAD/Gaia/
-Exoplanet Archive/MAST TESS+Kepler providers, caching, retries, validation, provenance), **pending live
-verification** against the real archives: run `uv run pytest -m network tests/live` (see ADR 0002).
+- **Phase 0** complete: workspace, CI, core schemas.
+- **Phase 1** complete in code (identity resolver, SIMBAD/Gaia/Exoplanet Archive/MAST TESS+Kepler
+  providers, caching, retries, validation, provenance), **pending live verification** against the
+  real archives: `uv run pytest -m network tests/live` (see ADR 0002).
+- **Phase 2** complete on **synthetic** data (quality, detrending, BLS search, views, vetting v1,
+  injection-recovery; see ADR 0003 and docs/evaluation). Real-data sensitivity is a Phase 10
+  measurement.
 
 ## Quickstart
 ```bash
@@ -20,6 +24,7 @@ make dev        # API on :8000  ->  GET /v1/health
 ## Layout
 - `packages/akash_core`: schemas, enums, ids, config (no web/ML deps)
 - `packages/akash_data`: identity, providers, storage, ingestion
+- `packages/akash_science`: deterministic light-curve science (no ML deps)
 - `packages/akash_provenance`: provenance records + lineage
 - `services/api`: FastAPI service (thin routers)
 - `docs/adr`: architecture decision records
