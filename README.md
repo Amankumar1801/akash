@@ -12,10 +12,13 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 - **Phase 2** complete on **synthetic** data (quality, detrending, BLS search, views, vetting v1,
   injection-recovery; see ADR 0003 and docs/evaluation). Real-data sensitivity is a Phase 10
   measurement.
+- **Phase 3** complete on **synthetic** data (classifier system, grouped frozen splits,
+  calibration, conformal sets, OOD, registry, model card; ADR 0004). Real training needs the Kepler
+  DR25 table + light curves: see `scripts/build_kepler_training_set.py`, `scripts/train_transit.py`.
 
 ## Quickstart
 ```bash
-make setup      # uv sync
+make setup      # uv sync --all-extras (includes torch)
 make test       # core + api tests
 make up         # postgres, redis, minio, mlflow (optional in Phase 0)
 make dev        # API on :8000  ->  GET /v1/health
@@ -24,6 +27,7 @@ make dev        # API on :8000  ->  GET /v1/health
 ## Layout
 - `packages/akash_core`: schemas, enums, ids, config (no web/ML deps)
 - `packages/akash_data`: identity, providers, storage, ingestion
+- `packages/akash_ml`: transit classifier (LightGBM + 1D CNN), calibration, conformal, OOD, registry
 - `packages/akash_science`: deterministic light-curve science (no ML deps)
 - `packages/akash_provenance`: provenance records + lineage
 - `services/api`: FastAPI service (thin routers)
