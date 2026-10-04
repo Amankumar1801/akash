@@ -3,7 +3,7 @@ name = "akash"
 version = "0.0.1"
 description = "AKASH: AI Astronomical Discovery Engine (workspace root)"
 requires-python = ">=3.11"
-dependencies = ["akash-core", "akash-api", "akash-data", "akash-provenance", "akash-science"]
+dependencies = ["akash-core", "akash-api", "akash-data", "akash-provenance", "akash-science", "akash-ml"]
 
 [tool.uv.workspace]
 members = ["packages/*", "services/*"]
@@ -14,6 +14,7 @@ akash-api = { workspace = true }
 akash-data = { workspace = true }
 akash-provenance = { workspace = true }
 akash-science = { workspace = true }
+akash-ml = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-cov", "httpx>=0.27", "ruff>=0.6", "mypy>=1.11"]
@@ -40,5 +41,5 @@ plugins = ["pydantic.mypy"]
 "tests/**" = ["E501"]
 
 [[tool.mypy.overrides]]
-module = ["astropy.*"]
+module = ["astropy.*", "lightgbm.*", "sklearn.*", "torch.*"]
 ignore_missing_imports = true
