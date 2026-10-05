@@ -15,6 +15,9 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 - **Phase 3** complete on **synthetic** data (classifier system, grouped frozen splits,
   calibration, conformal sets, OOD, registry, model card; ADR 0004). Real training needs the Kepler
   DR25 table + light curves: see `scripts/build_kepler_training_set.py`, `scripts/train_transit.py`.
+- **Phase 4** complete on **synthetic** data (variability/artifact features, 4-detector ensemble with
+  held-out calibration, artifact gate, severity ranking; ADR 0005, docs/evaluation). A real reference
+  population must be curated: `scripts/build_anomaly_reference.py`.
 
 ## Quickstart
 ```bash
@@ -27,7 +30,8 @@ make dev        # API on :8000  ->  GET /v1/health
 ## Layout
 - `packages/akash_core`: schemas, enums, ids, config (no web/ML deps)
 - `packages/akash_data`: identity, providers, storage, ingestion
-- `packages/akash_ml`: transit classifier (LightGBM + 1D CNN), calibration, conformal, OOD, registry
+- `packages/akash_ml`: transit classifier (LightGBM + 1D CNN), calibration, conformal, OOD, registry,
+  and the anomaly engine (`anomaly/`: detectors, autoencoder, reference populations)
 - `packages/akash_science`: deterministic light-curve science (no ML deps)
 - `packages/akash_provenance`: provenance records + lineage
 - `services/api`: FastAPI service (thin routers)
