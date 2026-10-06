@@ -18,6 +18,9 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 - **Phase 4** complete on **synthetic** data (variability/artifact features, 4-detector ensemble with
   held-out calibration, artifact gate, severity ranking; ADR 0005, docs/evaluation). A real reference
   population must be curated: `scripts/build_anomaly_reference.py`.
+- **Phase 5** complete on **synthetic** data with fake catalogs (typed evidence with provenance, Gaia
+  enrichment + contamination, period-based catalog matching, rule-based triage, evidence matrix,
+  `investigate()`; ADR 0006, docs/evaluation/phase5-investigation-scenarios.md). Live archives untested.
 
 ## Quickstart
 ```bash
@@ -32,6 +35,7 @@ make dev        # API on :8000  ->  GET /v1/health
 - `packages/akash_data`: identity, providers, storage, ingestion
 - `packages/akash_ml`: transit classifier (LightGBM + 1D CNN), calibration, conformal, OOD, registry,
   and the anomaly engine (`anomaly/`: detectors, autoencoder, reference populations)
+- `packages/akash_fusion`: cross-survey evidence, rule-based triage, assessments, investigation pipeline
 - `packages/akash_science`: deterministic light-curve science (no ML deps)
 - `packages/akash_provenance`: provenance records + lineage
 - `services/api`: FastAPI service (thin routers)

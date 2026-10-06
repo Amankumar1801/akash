@@ -115,3 +115,11 @@ def test_conformal_coverage_valid_across_resplits(ds):
         c0.append(cc[0])
         c1.append(cc[1])
     assert np.nanmean(c0) >= 0.87 and np.nanmean(c1) >= 0.87, (np.mean(c0), np.mean(c1))
+
+
+def test_single_member_system_has_vacuous_not_zero_width_interval(ds, manifest, parts):
+    only_gbm = train_system(ds, manifest, TrainConfig(run_cnn=False, bootstrap=10), "t")
+    s = only_gbm.score(parts["test"])
+    assert not s.spread_defined and (s.lo90 == 0).all() and (s.hi90 == 1).all()
+    pred, _ = only_gbm.to_prediction(s, 0)
+    assert pred.interval_90 == (0.0, 1.0)

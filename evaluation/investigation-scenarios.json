@@ -1,0 +1,163 @@
+{
+ "clean planet": {
+  "outcome": "assessed",
+  "category": "new_signal_review",
+  "reasons": [
+   "no_catalog_match",
+   "vetting_no_decisive_failure",
+   "model_not_excluding"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {},
+  "n_evidence": 14,
+  "n_conflicting": 0,
+  "followups": []
+ },
+ "known confirmed planet": {
+  "outcome": "assessed",
+  "category": "known_confirmed",
+  "reasons": [
+   "catalog_period_match:exact"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {},
+  "n_evidence": 14,
+  "n_conflicting": 0,
+  "followups": []
+ },
+ "known false positive": {
+  "outcome": "assessed",
+  "category": "known_false_positive",
+  "reasons": [
+   "catalog_period_match:exact"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {},
+  "n_evidence": 14,
+  "n_conflicting": 1,
+  "followups": []
+ },
+ "star has OTHER catalog entries": {
+  "outcome": "assessed",
+  "category": "new_signal_review",
+  "reasons": [
+   "no_catalog_match",
+   "vetting_no_decisive_failure",
+   "model_not_excluding"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {},
+  "n_evidence": 15,
+  "n_conflicting": 0,
+  "followups": []
+ },
+ "catalog outage": {
+  "outcome": "assessed",
+  "category": "new_signal_review",
+  "reasons": [
+   "catalog_unavailable",
+   "vetting_no_decisive_failure",
+   "model_not_excluding"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {},
+  "n_evidence": 14,
+  "n_conflicting": 0,
+  "followups": [
+   "Catalog lookup was unavailable: re-check TOI/KOI/Exoplanet Archive status"
+  ]
+ },
+ "nearby source could cause it": {
+  "outcome": "assessed",
+  "category": "new_signal_review",
+  "reasons": [
+   "no_catalog_match",
+   "vetting_no_decisive_failure",
+   "model_not_excluding"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {},
+  "n_evidence": 14,
+  "n_conflicting": 1,
+  "followups": [
+   "Check centroid motion / difference imaging; consider statistical validation (e.g. TRICERATOPS) for the nearby-source scenario"
+  ]
+ },
+ "compact dwarf (duration impossible)": {
+  "outcome": "assessed",
+  "category": "likely_systematic",
+  "reasons": [
+   "vetting_fail:duration_plausibility"
+  ],
+  "model_probability": 0.95,
+  "vetting_concerns": {
+   "duration_plausibility": "fail"
+  },
+  "n_evidence": 14,
+  "n_conflicting": 1,
+  "followups": [
+   "Transit duration is implausible for this star: re-check stellar parameters or consider an eclipsing/different-host scenario"
+  ]
+ },
+ "high-contrast eclipsing binary": {
+  "outcome": "assessed",
+  "category": "likely_systematic",
+  "reasons": [
+   "vetting_fail:odd_even"
+  ],
+  "model_probability": 0.03,
+  "vetting_concerns": {
+   "odd_even": "fail",
+   "periodicity_coverage": "warn"
+  },
+  "n_evidence": 14,
+  "n_conflicting": 2,
+  "followups": [
+   "Compare odd/even transit depths with more transits (eclipsing binary at twice this period?)",
+   "Individual transit depths are inconsistent: check for blended events or systematics",
+   "Classifier inputs are out-of-distribution: rely on vetting and manual review"
+  ]
+ },
+ "moderate eclipsing binary": {
+  "outcome": "assessed",
+  "category": "new_signal_review",
+  "reasons": [
+   "no_catalog_match",
+   "vetting_no_decisive_failure",
+   "model_not_excluding"
+  ],
+  "model_probability": 0.74,
+  "vetting_concerns": {
+   "odd_even": "warn"
+  },
+  "n_evidence": 14,
+  "n_conflicting": 1,
+  "followups": [
+   "Compare odd/even transit depths with more transits (eclipsing binary at twice this period?)"
+  ]
+ },
+ "equal-depth binary (degenerate)": {
+  "outcome": "assessed",
+  "category": "new_signal_review",
+  "reasons": [
+   "no_catalog_match",
+   "vetting_no_decisive_failure",
+   "model_not_excluding"
+  ],
+  "model_probability": 0.85,
+  "vetting_concerns": {},
+  "n_evidence": 14,
+  "n_conflicting": 0,
+  "followups": []
+ },
+ "no transit signal": {
+  "outcome": "no_transit_signal",
+  "category": null,
+  "reasons": [],
+  "model_probability": null,
+  "vetting_concerns": {},
+  "n_evidence": 0,
+  "n_conflicting": 0,
+  "followups": []
+ }
+}
