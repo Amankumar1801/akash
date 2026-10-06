@@ -60,6 +60,7 @@ class Scored:
     ood_flag: np.ndarray
     sets: np.ndarray
     set_labels: list[str]
+    spread_defined: bool = True  # False for a single-model system: spread is UNDEFINED, not zero
 
 
 @dataclass
@@ -80,10 +81,14 @@ class TrainedSystem:
         sd = mem.std(axis=0)
         sets = self.conformal.predict_sets(cal)
         pct = self.ood.percentile(ds.features)
-        lo, hi = np.clip(cal - Z90 * sd, 0, cal), np.clip(cal + Z90 * sd, cal, 1)
+        defined = len(self.members) >= 2
+        if defined:
+            lo, hi = np.clip(cal - Z90 * sd, 0, cal), np.clip(cal + Z90 * sd, cal, 1)
+        else:  # one model has no spread; a zero-width interval would read as certainty
+            lo, hi = np.zeros_like(cal), np.ones_like(cal)
         return Scored(out.prob, cal, lo, hi,
                       out.family_probs, out.disagree, pct, self.ood.flag(ds.features), sets,
-                      [set_label(r) for r in sets])
+                      [set_label(r) for r in sets], defined)
 
     def to_prediction(self, s: Scored, i: int) -> tuple[Prediction, OODInfo]:
         """Bridge to the core Assessment schema. interval_90 is ENSEMBLE SPREAD (model

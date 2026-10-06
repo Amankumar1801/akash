@@ -40,6 +40,8 @@ class ExoplanetArchiveProvider:
         self.http = http
         self.url = url
         self.tap = TapClient(http, url)
+        # queries of the latest lookup: an EMPTY result still needs provenance of what was asked
+        self.last_queries: list[str] = []
 
     def health(self) -> ProviderHealth:
         return ProviderHealth(self.name, self.http.breaker.state, self.http.last_error)
@@ -47,11 +49,13 @@ class ExoplanetArchiveProvider:
     def lookup(self, obj: AstronomicalObject) -> list[CatalogRecord]:
         now = datetime.now(UTC)
         out: list[CatalogRecord] = []
+        self.last_queries = []
         if tic := obj.alias("TIC"):
             q = (
                 "select tid, toi, tfopwg_disp, pl_orbper, pl_trandep, pl_trandurh "
                 f"from toi where tid = {int(tic)}"
             )
+            self.last_queries.append(q)
             for r in self.tap.query(q):
                 disp = str(r.get("tfopwg_disp") or "").strip().upper()
                 out.append(CatalogRecord(
@@ -62,6 +66,7 @@ class ExoplanetArchiveProvider:
                 "select kepid, kepoi_name, koi_disposition, koi_pdisposition, koi_period "
                 f"from cumulative where kepid = {int(kic)}"
             )
+            self.last_queries.append(q)
             for r in self.tap.query(q):
                 disp = str(r.get("koi_disposition") or "").strip().upper()
                 out.append(CatalogRecord(

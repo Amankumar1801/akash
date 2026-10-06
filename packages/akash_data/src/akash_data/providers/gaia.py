@@ -26,6 +26,7 @@ class GaiaProvider:
         self.http = http
         self.url = url
         self.tap = TapClient(http, url, upper_params=True)
+        self.last_query = ""  # exact ADQL of the most recent query, for provenance
 
     def health(self) -> ProviderHealth:
         return ProviderHealth(self.name, self.http.breaker.state, self.http.last_error)
@@ -37,6 +38,7 @@ class GaiaProvider:
             f"POINT('ICRS', ra, dec), CIRCLE('ICRS', {ra:.8f}, {dec:.8f}, "
             f"{radius_arcsec / 3600.0:.8f}))"
         )
+        self.last_query = adql
         rows = self.tap.query(adql)
         for r in rows:
             r["_sep_arcsec"] = angular_sep_arcsec(ra, dec, float(r["ra"]), float(r["dec"]))
