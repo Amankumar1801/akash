@@ -34,9 +34,11 @@ class DataLayer:
     kepler: ObservationService
 
 
-def build_data_layer(settings: Settings, transport: httpx.BaseTransport | None = None) -> DataLayer:
-    Path(settings.sqlite_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(settings.sqlite_path, check_same_thread=False)
+def build_data_layer(settings: Settings, transport: httpx.BaseTransport | None = None,
+                     conn: sqlite3.Connection | None = None) -> DataLayer:
+    if conn is None:
+        Path(settings.sqlite_path).parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(settings.sqlite_path, check_same_thread=False)
     repo, prov = MetadataRepo(conn), SqliteProvenanceStore(conn)
     artifacts = LocalArtifactStore(Path(settings.data_dir) / "objects", conn)
     ua = f"AKASH/{__version__} (+{settings.contact_email or 'no-contact-set'})"

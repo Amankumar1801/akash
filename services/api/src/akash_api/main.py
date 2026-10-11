@@ -1,31 +1,30 @@
-"""FastAPI entrypoint. Routers stay thin: no science or ML logic lives here."""
+"""ASGI entrypoint (`uvicorn akash_api.main:app`). `create_app` stays importable from here.
 
-from akash_core import __version__
+`app` is a lazy proxy: importing this module has no side effects (no database, no directories,
+no network); the production application is built on the first ASGI event (the lifespan startup)."""
+
+from __future__ import annotations
+
+from typing import Any
+
 from akash_core.config import Settings
-from fastapi import APIRouter, FastAPI
+from starlette.types import Receive, Scope, Send
 
-DISCLAIMER = (
-    "AKASH assists investigation and does not independently establish scientific discoveries."
-)
+from .app import DISCLAIMER, create_app
+from .services import build_default_services
 
-
-def create_app(settings: Settings | None = None) -> FastAPI:
-    settings = settings or Settings()
-    app = FastAPI(title="AKASH", version=__version__)
-    router = APIRouter(prefix="/v1")
-
-    @router.get("/health")
-    def health() -> dict[str, str]:
-        return {
-            "status": "ok",
-            "version": __version__,
-            "pipeline_version": settings.pipeline_version,
-            "env": settings.env,
-            "disclaimer": DISCLAIMER,
-        }
-
-    app.include_router(router)
-    return app
+__all__ = ["DISCLAIMER", "app", "create_app"]
 
 
-app = create_app()
+class _LazyApp:
+    def __init__(self) -> None:
+        self._app: Any = None
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if self._app is None:
+            settings = Settings()
+            self._app = create_app(settings, build_default_services(settings))
+        await self._app(scope, receive, send)
+
+
+app = _LazyApp()

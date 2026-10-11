@@ -3,7 +3,10 @@ name = "akash-api"
 version = "0.0.1"
 description = "AKASH FastAPI service (thin routers over library packages)"
 requires-python = ">=3.11"
-dependencies = ["akash-core", "fastapi>=0.111", "uvicorn[standard]>=0.30"]
+dependencies = [
+  "akash-core", "akash-data", "akash-provenance", "akash-science", "akash-ml", "akash-fusion",
+  "fastapi>=0.111", "uvicorn[standard]>=0.30",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -14,3 +17,8 @@ packages = ["src/akash_api"]
 
 [tool.uv.sources]
 akash-core = { workspace = true }
+akash-data = { workspace = true }
+akash-provenance = { workspace = true }
+akash-science = { workspace = true }
+akash-ml = { workspace = true }
+akash-fusion = { workspace = true }

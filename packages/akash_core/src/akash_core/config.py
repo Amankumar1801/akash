@@ -17,3 +17,13 @@ class Settings(BaseSettings):
     data_dir: str = "./data"
     sqlite_path: str = "./data/akash.sqlite3"
     contact_email: str = ""  # included in the User-Agent so archives can reach you
+    registry_root: str = "./models"
+    api_rate_per_min: int = 120  # general per-principal limit
+    api_investigation_rate_per_min: int = 10  # expensive endpoint
+    api_max_body_bytes: int = 1_000_000
+    api_max_concurrent_jobs: int = 2
+    api_sse_poll_interval_s: float = 0.25
+    api_sse_max_seconds: float = 900.0
+    api_cors_origins: str = ""  # comma-separated; empty = no CORS
+    transit_model: str = ""  # "name/version" in the registry; empty = classifier disabled
+    anomaly_reference: str = ""  # path to a saved reference population; empty = disabled

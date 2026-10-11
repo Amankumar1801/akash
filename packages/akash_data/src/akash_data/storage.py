@@ -190,6 +190,11 @@ class MetadataRepo:
         ).fetchone()
         return Observation.model_validate_json(row[0]) if row else None
 
+    def get_observation(self, obs_id: UUID) -> Observation | None:
+        row = self._c.execute("SELECT payload FROM observation WHERE obs_id=?",
+                              (str(obs_id),)).fetchone()
+        return Observation.model_validate_json(row[0]) if row else None
+
     def list_observations(self, object_id: UUID, modality: str | None = None) -> list[Observation]:
         q = "SELECT payload FROM observation WHERE object_id=?"
         args: list[str] = [str(object_id)]

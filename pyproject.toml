@@ -44,3 +44,8 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = ["astropy.*", "lightgbm.*", "sklearn.*", "torch.*"]
 ignore_missing_imports = true
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency-injection idiom: Depends()/Query()/... as parameter defaults.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Header",
+  "akash_api.deps.require", "akash_api.deps.rate_limited"]
