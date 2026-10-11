@@ -24,3 +24,7 @@ class ObjectNotFound(AkashError):
 
 class CircuitOpen(ProviderError):
     """Provider circuit breaker is open; calls are being shed."""
+
+
+class JobCancelled(AkashError):
+    """Raised inside a running job when cancellation was requested."""

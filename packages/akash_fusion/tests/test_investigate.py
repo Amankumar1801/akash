@@ -327,3 +327,62 @@ def test_matrix_versions_are_not_duplicated(obj, lc_prov, deps, prov):
     rows = run(obj, make_lc(1, planet(make_lc(1))), lc_prov, deps).matrix(prov)
     sig = next(x for x in rows if x["observation"].startswith("Periodic dip search"))
     assert sig["version"] == "lc-pipeline@1" and sig["source"]["activity"]
+
+
+# ---------- progress events & cancellation (consumed by the job system) ----------
+def collect(obj, lc, lc_prov, deps):
+    events = []
+    r = investigate(obj, lc, lc_prov, deps, progress=events.append)
+    return r, events
+
+
+def test_progress_events_cover_every_phase_in_order(obj, lc_prov, deps):
+    from akash_fusion.progress import PHASES
+    r, ev = collect(obj, make_lc(1, planet(make_lc(1))), lc_prov, deps)
+    phases = [e.phase for e in ev]
+    assert [p for p in PHASES if p in phases] == list(dict.fromkeys(phases))  # canonical order
+    for phase in PHASES:  # every phase reports, even when skipped
+        assert phase in phases, phase
+    started = {e.phase for e in ev if e.status == "started"}
+    done = {e.phase for e in ev if e.status in ("completed", "failed")}
+    assert started <= done  # nothing is left 'started' forever
+    assert next(e for e in ev if e.phase == "signal_search" and e.status == "completed"
+                ).data["n_tces"] >= 1
+    assert next(e for e in ev if e.phase == "evidence_fusion" and e.status == "completed"
+                ).data["category"] == r.assessment.triage_category.value
+
+
+def test_unconfigured_services_are_reported_as_skipped_not_silently_absent(obj, lc_prov, deps):
+    deps.system, deps.catalog, deps.stellar = None, None, None
+    _, ev = collect(obj, make_lc(1, planet(make_lc(1))), lc_prov, deps)
+    skipped = {e.phase for e in ev if e.status == "skipped"}
+    assert {"stellar_enrichment", "anomaly", "ml_inference"} <= skipped
+
+
+def test_no_signal_run_still_reports_a_consistent_event_stream(obj, lc_prov, deps):
+    r, ev = collect(obj, make_lc(5), lc_prov, deps)
+    assert r.outcome == "no_transit_signal"
+    skipped = [e.phase for e in ev if e.status == "skipped"]
+    assert {"ml_inference", "cross_match", "evidence_fusion"} <= set(skipped)
+    assert ev[-1].phase == "persist" and ev[-1].status == "completed"
+
+
+def test_cancellation_from_the_callback_aborts_before_persisting(obj, lc_prov, deps, store):
+    from akash_core.errors import JobCancelled
+
+    def cancel_at_ml(e):
+        if e.phase == "ml_inference" and e.status == "started":
+            raise JobCancelled("cancelled")
+
+    inv = __import__("uuid").uuid4()
+    with pytest.raises(JobCancelled):
+        investigate(obj, make_lc(1, planet(make_lc(1))), lc_prov, deps, inv, cancel_at_ml)
+    assert store.get_assessment(inv) is None and store.list_evidence(inv) == []
+
+
+def test_progress_is_optional_and_does_not_change_results(obj, lc_prov, deps):
+    lc = make_lc(1, planet(make_lc(1)))
+    a = investigate(obj, lc, lc_prov, deps)
+    b = investigate(obj, lc, lc_prov, deps, progress=lambda e: None)
+    assert a.assessment.triage_category == b.assessment.triage_category
+    assert a.assessment.transit == b.assessment.transit

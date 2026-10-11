@@ -49,6 +49,7 @@ from .evidence import (
     add_stellar_evidence,
 )
 from .matrix import evidence_matrix
+from .progress import ProgressCallback, ProgressEvent
 from .stellar import StellarProfile, StellarService, assess_contamination
 from .store import EvidenceStore
 from .triage import ModelView, TriageConfig, TriageDecision, TriageInputs, triage
@@ -100,34 +101,56 @@ def _dropped_fraction(counts: dict[str, int]) -> float:
 
 
 def investigate(obj: AstronomicalObject, lc: NormalizedLightCurve, lc_prov_id: UUID,
-                deps: InvestigationDeps, investigation_id: UUID | None = None
-                ) -> InvestigationResult:
+                deps: InvestigationDeps, investigation_id: UUID | None = None,
+                progress: ProgressCallback | None = None) -> InvestigationResult:
     inv = investigation_id or new_id()
+
+    def emit(phase: str, status: str, message: str = "", **data: Any) -> None:
+        if progress is not None:
+            progress(ProgressEvent(phase, status, message, dict(data)))
+
     rec = EvidenceRecorder(inv, deps.prov, deps.code_version)
     warnings: list[str] = []
 
     profile: StellarProfile | None = None
-    if deps.stellar is not None:
+    if deps.stellar is None:
+        emit("stellar_enrichment", "skipped", "no Gaia service configured")
+    else:
+        emit("stellar_enrichment", "started")
         try:
             profile = deps.stellar.profile(obj)
+            emit("stellar_enrichment", "completed" if profile else "skipped",
+                 "" if profile else "no Gaia source for this object")
         except AkashError as e:
             warnings.append(f"Gaia enrichment unavailable: {e}")
+            emit("stellar_enrichment", "failed", "Gaia enrichment unavailable")
 
+    emit("signal_search", "started")
     res = deps.pipeline.run(lc, stellar=profile.context() if profile else None)
     pipe_rec, _, _ = persist_result(res, lc_prov_id, deps.artifacts, deps.prov, deps.code_version)
     pipeline_prov = pipe_rec.prov_id
+    emit("signal_search", "completed", f"{len(res.tces)} periodic signal(s) found",
+         n_tces=len(res.tces), n_points=len(res.time))
 
     anomaly: AnomalyResult | None = None
-    if deps.anomaly is not None:
+    if deps.anomaly is None:
+        emit("anomaly", "skipped", "no reference population configured")
+    else:
+        emit("anomaly", "started")
         anomaly = deps.anomaly.analyze(lc)
         add_anomaly_evidence(rec, anomaly, [lc_prov_id])
+        emit("anomaly", "completed", anomaly.status.value)
 
     if not res.tces:
         warnings.extend(res.warnings)
+        for phase in ("ml_inference", "cross_match", "evidence_fusion"):
+            emit(phase, "skipped", "no transit signal to assess")
         out = InvestigationResult(inv, "no_transit_signal", None, rec.items, None, res, anomaly,
                                   [], warnings)
+        emit("persist", "started")
         if deps.store:
             deps.store.save(None, rec.items, inv)
+        emit("persist", "completed")
         return out
 
     primary, extras = res.tces[0], [t.tce for t in res.tces[1:]]
@@ -147,7 +170,10 @@ def investigate(obj: AstronomicalObject, lc: NormalizedLightCurve, lc_prov_id: U
     model_view: ModelView | None = None
     prediction: Prediction | None = None
     ood: OODInfo | None = None
-    if deps.system is not None:
+    if deps.system is None:
+        emit("ml_inference", "skipped", "no classifier configured")
+    else:
+        emit("ml_inference", "started")
         er = ephemeris_result_from_pipeline(res, primary)
         scored = deps.system.score(dataset_from_results([er]))
         add_model_evidence(rec, deps.system, scored, 0, [pipeline_prov])
@@ -155,9 +181,11 @@ def investigate(obj: AstronomicalObject, lc: NormalizedLightCurve, lc_prov_id: U
         model_view = ModelView(float(scored.prob[0]), scored.set_labels[0],
                                bool(scored.ood_flag[0]), bool(scored.disagree[0]),
                                rec.keys["model"])
+        emit("ml_inference", "completed", scored.set_labels[0])
 
     records: list[CatalogRecord] = []
     catalog_available, known_source = False, "NASA Exoplanet Archive"
+    emit("cross_match", "started")
     if deps.catalog is not None:
         try:
             records = deps.catalog.lookup(obj)
@@ -180,6 +208,10 @@ def investigate(obj: AstronomicalObject, lc: NormalizedLightCurve, lc_prov_id: U
     if profile is not None:
         cont = assess_contamination(profile, t.depth_frac)
         add_stellar_evidence(rec, profile, cont)
+    emit("cross_match", "completed" if catalog_available else "failed",
+         "catalog matched" if match else "no catalog match" if catalog_available
+         else "catalog unavailable")
+    emit("evidence_fusion", "started")
 
     cat_key = ("catalog:match" if match else "catalog:summary" if records
                else "catalog:none" if catalog_available else "catalog:unavailable")
@@ -214,8 +246,12 @@ def investigate(obj: AstronomicalObject, lc: NormalizedLightCurve, lc_prov_id: U
         conflicting_evidence=[e.evidence_id for e in rec.items
                               if e.direction == Direction.CONTRADICTS],
         recommended_followup=decision.followups)
+    emit("evidence_fusion", "completed", decision.category.value,
+         category=decision.category.value)
+    emit("persist", "started")
     if deps.store:
         deps.store.save(assessment, rec.items, inv)
+    emit("persist", "completed")
     return InvestigationResult(inv, "assessed", assessment, rec.items, decision, res, anomaly,
                                extras, warnings)
 

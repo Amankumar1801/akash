@@ -7,6 +7,7 @@ Lineage = all transitive ancestors reachable by following edges from -> to.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable
 from datetime import datetime
 from uuid import UUID
 
@@ -81,6 +82,24 @@ class SqliteProvenanceStore:
             (str(prov_id),),
         ).fetchall()
         return [_row_to_record(r) for r in rows]
+
+    def graph(self, prov_ids: Iterable[UUID]) -> tuple[list[ProvenanceRecord],
+                                                       list[tuple[UUID, UUID, str]]]:
+        """Every record reachable (as an ancestor) from prov_ids, plus the edges among them."""
+        nodes: dict[UUID, ProvenanceRecord] = {}
+        for pid in prov_ids:
+            if pid not in nodes:
+                nodes[pid] = self.get(pid)
+            for r in self.lineage(pid):
+                nodes[r.prov_id] = r
+        if not nodes:
+            return [], []
+        marks = ",".join("?" * len(nodes))
+        rows = self._c.execute(
+            f"SELECT from_prov, to_prov, relation FROM prov_edge WHERE from_prov IN ({marks})",
+            [str(i) for i in nodes]).fetchall()
+        edges = [(UUID(r[0]), UUID(r[1]), r[2]) for r in rows if UUID(r[1]) in nodes]
+        return sorted(nodes.values(), key=lambda r: r.at), edges
 
     def verify_chain(self, prov_id: UUID) -> None:
         """Raise unless the chain bottoms out in a root with a source URI and content hash."""

@@ -21,6 +21,10 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 - **Phase 5** complete on **synthetic** data with fake catalogs (typed evidence with provenance, Gaia
   enrichment + contamination, period-based catalog matching, rule-based triage, evidence matrix,
   `investigate()`; ADR 0006, docs/evaluation/phase5-investigation-scenarios.md). Live archives untested.
+- **Phase 6** complete on in-process fakes (FastAPI service: object search, observations, async
+  investigations with durable jobs, SSE + polling progress, cancel/idempotency, API-key auth with
+  roles, rate limits, audit log, model registry endpoints; see ADR 0007). Not tested against real
+  Celery/Redis/Postgres or live archives.
 
 ## Quickstart
 ```bash
