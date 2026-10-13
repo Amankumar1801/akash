@@ -1,4 +1,4 @@
-.PHONY: setup dev up down test lint typecheck
+.PHONY: setup dev up down test lint typecheck web web-test web-build
 setup:      ; uv sync --all-packages --all-extras  # torch is an optional extra
 up:         ; docker compose -f infra/compose/docker-compose.yml up -d
 down:       ; docker compose -f infra/compose/docker-compose.yml down
@@ -9,3 +9,7 @@ typecheck:  ; uv run mypy packages/akash_core/src packages/akash_provenance/src 
 
 inject:     ; uv run python scripts/injection_recovery.py
 live:       ; uv run pytest -m network tests/live
+
+web:        ; cd frontend && npm install && npm run dev
+web-test:   ; cd frontend && npm test && npm run typecheck
+web-build:  ; cd frontend && npm run build

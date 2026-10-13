@@ -9,3 +9,5 @@ data/*
 !data/.gitkeep
 mlruns/
 models/
+node_modules/
+frontend/dist/
