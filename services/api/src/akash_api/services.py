@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
+from akash_agent import LLMProvider, OpenAICompatProvider
 from akash_core.config import Settings
 from akash_core.enums import ProvRelation
 from akash_core.errors import ValidationFailure
@@ -61,6 +62,7 @@ class AppServices:
     version_tag: str = "dev"  # part of the idempotency key: new models => new results
     registry_root: Path | None = None
     limiter: RateLimiter = field(default_factory=RateLimiter)
+    make_llm_provider: Callable[[], LLMProvider | None] = lambda: None  # None => deterministic
 
     @contextmanager
     def context(self) -> Iterator[StoreContext]:
@@ -155,4 +157,7 @@ def build_default_services(settings: Settings) -> AppServices:
         artifacts_dir=str(Path(settings.data_dir) / "objects"),
         make_resolver=lambda ctx: dl(ctx).resolver, make_lightcurve_source=source,
         make_investigation_deps=deps, executor=InProcessExecutor(settings.api_max_concurrent_jobs),
-        version_tag=tag, registry_root=Path(settings.registry_root))
+        version_tag=tag, registry_root=Path(settings.registry_root),
+        make_llm_provider=lambda: (
+            OpenAICompatProvider(settings.llm_base_url, settings.llm_api_key, settings.llm_model)
+            if settings.llm_api_key and settings.llm_model else None))

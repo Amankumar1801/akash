@@ -10,6 +10,7 @@ resolution-markers = [
 [manifest]
 members = [
     "akash",
+    "akash-agent",
     "akash-api",
     "akash-core",
     "akash-data",
@@ -24,6 +25,7 @@ name = "akash"
 version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
+    { name = "akash-agent" },
     { name = "akash-api" },
     { name = "akash-core" },
     { name = "akash-data" },
@@ -44,6 +46,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "akash-agent", editable = "packages/akash_agent" },
     { name = "akash-api", editable = "services/api" },
     { name = "akash-core", editable = "packages/akash_core" },
     { name = "akash-data", editable = "packages/akash_data" },
@@ -63,10 +66,26 @@ dev = [
 ]
 
 [[package]]
+name = "akash-agent"
+version = "0.0.1"
+source = { editable = "packages/akash_agent" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pydantic", specifier = ">=2.7" },
+]
+
+[[package]]
 name = "akash-api"
 version = "0.0.1"
 source = { editable = "services/api" }
 dependencies = [
+    { name = "akash-agent" },
     { name = "akash-core" },
     { name = "akash-data" },
     { name = "akash-fusion" },
@@ -79,6 +98,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "akash-agent", editable = "packages/akash_agent" },
     { name = "akash-core", editable = "packages/akash_core" },
     { name = "akash-data", editable = "packages/akash_data" },
     { name = "akash-fusion", editable = "packages/akash_fusion" },

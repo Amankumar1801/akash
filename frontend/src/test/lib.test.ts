@@ -178,3 +178,19 @@ describe("demo service", () => {
     expect(lc.n_returned).toBeLessThanOrEqual(500); expect(lc.downsampled).toBe(true);
   });
 });
+
+describe("demo ask", () => {
+  it("answers only from the investigation's own evidence", async () => {
+    const api = new DemoApi(0, false);
+    const j = await api.createInvestigation({ query: "TIC 1" });
+    for (let k = 0; k < 400; k++) {
+      if ((await api.getInvestigation(j.investigation_id)).status === "succeeded") break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    const ev = new Set((await api.evidence(j.investigation_id)).map((x) => x.evidence_id));
+    const a = await api.ask(j.investigation_id, "what is uncertain?");
+    expect(a.verified).toBe(true);
+    for (const s of a.statements) for (const id of s.evidence_ids) expect(ev.has(id)).toBe(true);
+    expect(a.statements.every((s) => !/discover/i.test(s.text))).toBe(true);
+  });
+});

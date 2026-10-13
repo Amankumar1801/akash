@@ -26,6 +26,7 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
   roles, rate limits, audit log, model registry endpoints; see ADR 0007). Not tested against real
   Celery/Redis/Postgres or live archives.
 - **Phase 7** (first slice) complete: React frontend in `frontend/` (logbook, live investigation view, light/folded curves, separate readouts, evidence strip, provenance graph, models; ADR 0008). Runs on synthetic demo data or the Phase 6 API; the live path is tested only against a local HTTP server.
+- **Phase 8** complete: read-only, bounded research agent (`packages/akash_agent`, ADR 0009) with prompt-injection defences, a citation verifier and a deterministic fallback; `POST /v1/investigations/{id}/ask` and an Ask tab. No live LLM has been exercised; the provider is tested against a mock transport only.
 
 ## Quickstart
 ```bash

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { EvidenceRow, InvestigationDetail, JobEvent, ObjectOut, ProvGraph } from "../api/types";
+import { Ask } from "../components/Ask";
 import { EvidenceStrip } from "../components/EvidenceStrip";
 import { FoldPlot, LightCurvePlot, useEpoch } from "../components/LightCurvePlots";
 import { ProvGraphView } from "../components/ProvGraph";
@@ -13,7 +14,7 @@ import { follow } from "../lib/follow";
 import { cleanSeries, type Series } from "../lib/lc";
 import { reduceLanes } from "../lib/phases";
 
-type Tab = "summary" | "evidence" | "provenance";
+type Tab = "summary" | "evidence" | "provenance" | "ask";
 const EMPTY: Series = { t: [], f: [] };
 
 export function Investigation() {
@@ -142,9 +143,9 @@ export function Investigation() {
         {detail?.status === "succeeded" && (
           <>
             <div className="tabs" role="tablist" aria-label="Result sections">
-              {(["summary", "evidence", "provenance"] as Tab[]).map((t) => (
+              {(["summary", "evidence", "provenance", "ask"] as Tab[]).map((t) => (
                 <button key={t} role="tab" id={`tab-${t}`} aria-selected={tab === t} aria-controls={`panel-${t}`} onClick={() => setTab(t)}>
-                  {{ summary: "Readouts", evidence: `Evidence${evidence.length ? ` (${evidence.length})` : ""}`, provenance: "Provenance" }[t]}
+                  {{ summary: "Readouts", evidence: `Evidence${evidence.length ? ` (${evidence.length})` : ""}`, provenance: "Provenance", ask: "Ask" }[t]}
                 </button>))}
             </div>
             <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
@@ -152,6 +153,7 @@ export function Investigation() {
               {tab === "summary" && !a && <p className="empty">There are no readouts because no signal was found. The evidence tab shows what was checked.</p>}
               {tab === "evidence" && (evidence.length ? <EvidenceStrip rows={evidence} selected={selected} onSelect={setSelected} />
                 : <div className="skel" style={{ height: 160, marginTop: 20 }} />)}
+              {tab === "ask" && <Ask id={id} onOpenEvidence={openEvidence} />}
               {tab === "provenance" && (prov ? <ProvGraphView g={prov} /> : <div className="skel" style={{ height: 160, marginTop: 20 }} />)}
             </div>
           </>

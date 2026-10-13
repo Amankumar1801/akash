@@ -15,7 +15,7 @@ from .auth import Principal, Role
 from .deps import rate_limited, require
 from .errors import install_error_handlers
 from .jobs import JobStore
-from .routers import investigations, models, objects
+from .routers import agent, investigations, models, objects
 from .schemas import MeOut
 from .security import SecurityMiddleware
 from .services import AppServices
@@ -67,6 +67,6 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
         return MeOut(name=principal.name, role=principal.role.name.lower(),
                      key_id=principal.key_id)
 
-    for r in (health, objects.router, investigations.router, models.router):
+    for r in (health, objects.router, investigations.router, models.router, agent.router):
         app.include_router(r)
     return app

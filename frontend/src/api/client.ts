@@ -1,4 +1,5 @@
 import type {
+  AskAnswer,
   EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent, LightCurveData, Me,
   ModelOut, ObjectOut, ObservationOut, ProvGraph,
 } from "./types";
@@ -25,6 +26,7 @@ export interface AkashApi {
   evidence(id: string): Promise<EvidenceRow[]>;
   provenance(id: string): Promise<ProvGraph>;
   models(): Promise<ModelOut[]>;
+  ask(id: string, question: string): Promise<AskAnswer>;
   /** Ordered events after `after`; ends when the job reaches a terminal state. */
   events(id: string, after: number, signal: AbortSignal): AsyncGenerator<JobEvent>;
 }
@@ -67,6 +69,8 @@ export class HttpApi implements AkashApi {
   evidence = (id: string) => this.req<EvidenceRow[]>("GET", `/v1/investigations/${id}/evidence`);
   provenance = (id: string) => this.req<ProvGraph>("GET", `/v1/investigations/${id}/provenance`);
   models = () => this.req<ModelOut[]>("GET", "/v1/models");
+  ask = (id: string, question: string) =>
+    this.req<AskAnswer>("POST", `/v1/investigations/${id}/ask`, { question });
 
   /** SSE over fetch (EventSource cannot send an Authorization header). */
   async *events(id: string, after: number, signal: AbortSignal): AsyncGenerator<JobEvent> {

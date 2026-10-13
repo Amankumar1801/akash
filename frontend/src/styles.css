@@ -259,3 +259,18 @@ dialog h2 { font-size: 22px; margin-bottom: 14px; }
   .hash, .dl dd { overflow-wrap: anywhere; }
   .tbl { font-size: 13px; }
 }
+
+/* Ask panel */
+.ask { margin-top: 22px; max-width: 74ch; }
+.ask-row { display: flex; gap: 10px; margin-top: 6px; }
+.ask-row input { flex: 1; min-width: 0; background: var(--panel, transparent); color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 11px 12px; font: inherit; }
+.ask-row input:focus-visible { outline: 2px solid var(--lamp); outline-offset: 1px; }
+.ask-ex { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ask-ex button { background: none; border: 1px solid var(--rule-soft); color: var(--ink-2, var(--ink)); border-radius: 999px; padding: 5px 12px; font-size: 13.5px; cursor: pointer; }
+.ask-ans { margin-top: 20px; }
+.ask-ans ul { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 12px; }
+.ask-ans li { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; line-height: 1.5; }
+.kind { font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); border: 1px solid var(--rule-soft); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.kind-fact { color: var(--ink); }
+.cite { background: none; border: 1px solid var(--rule); color: var(--lamp); border-radius: 4px; padding: 0 6px; font-size: 12px; cursor: pointer; }
+.ask-disc, .ask-mode { font-size: 13px; }
