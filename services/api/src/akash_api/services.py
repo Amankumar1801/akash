@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
+import numpy as np
 from akash_agent import LLMProvider, OpenAICompatProvider
 from akash_core.config import Settings
 from akash_core.enums import ProvRelation
@@ -30,7 +31,9 @@ from akash_science.lightcurve.pipeline import LightCurvePipeline
 from .auth import ApiKeyStore
 from .db import StoreContext, make_store_context
 from .jobs import InProcessExecutor, JobExecutor, JobStore
+from .metrics import Metrics
 from .ratelimit import RateLimiter
+from .research import ExperimentStore, LabelStore
 
 
 @dataclass
@@ -62,6 +65,9 @@ class AppServices:
     version_tag: str = "dev"  # part of the idempotency key: new models => new results
     registry_root: Path | None = None
     limiter: RateLimiter = field(default_factory=RateLimiter)
+    metrics: Metrics = field(default_factory=Metrics)
+    experiment_executor: JobExecutor = field(default_factory=lambda: InProcessExecutor(1))
+    experiment_base: Callable[[np.random.Generator], NormalizedLightCurve] | None = None
     make_llm_provider: Callable[[], LLMProvider | None] = lambda: None  # None => deterministic
 
     @contextmanager
@@ -76,6 +82,8 @@ class AppServices:
         with self.context() as ctx:  # constructing the stores creates their tables
             ApiKeyStore(ctx.conn)
             JobStore(ctx.conn)
+            ExperimentStore(ctx.conn)
+            LabelStore(ctx.conn)
 
 
 class DataLayerLightCurveSource:

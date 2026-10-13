@@ -114,7 +114,9 @@ def deps_factory(system):  # type: ignore[no-untyped-def]
 def settings(tmp_path):
     return Settings(env="test", sqlite_path=str(tmp_path / "akash.sqlite3"),
                     data_dir=str(tmp_path), api_sse_poll_interval_s=0.01,
-                    api_rate_per_min=100000, api_investigation_rate_per_min=100000)
+                    api_rate_per_min=100000, api_investigation_rate_per_min=100000,
+                    api_experiment_rate_per_min=100000, api_label_rate_per_min=100000,
+                    api_report_rate_per_min=100000, api_agent_rate_per_min=100000)
 
 
 @pytest.fixture

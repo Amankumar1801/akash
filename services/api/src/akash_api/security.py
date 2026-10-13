@@ -13,6 +13,8 @@ from typing import Any
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from .metrics import Metrics
+
 access_log = logging.getLogger("akash.access")
 _RID = re.compile(r"^[A-Za-z0-9._-]{8,64}$")
 
@@ -22,8 +24,9 @@ class BodyTooLarge(Exception):
 
 
 class SecurityMiddleware:
-    def __init__(self, app: ASGIApp, max_body_bytes: int = 1_000_000) -> None:
-        self.app, self.max_body = app, max_body_bytes
+    def __init__(self, app: ASGIApp, max_body_bytes: int = 1_000_000,
+                 metrics: Metrics | None = None) -> None:
+        self.app, self.max_body, self.metrics = app, max_body_bytes, metrics
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -94,6 +97,12 @@ class SecurityMiddleware:
             if not started:
                 await reject_413()
         finally:
+            if self.metrics is not None:
+                route = getattr(scope.get("route"), "path", None) or "unmatched"
+                dt = time.perf_counter() - t0
+                self.metrics.inc("http_requests_total", {
+                    "method": scope["method"], "route": route, "status": f"{status // 100}xx"})
+                self.metrics.observe("http_request_seconds", dt, {"route": route})
             access_log.info(json.dumps({
                 "request_id": rid, "method": scope["method"], "path": scope["path"],
                 "status": status, "ms": round((time.perf_counter() - t0) * 1000, 1),

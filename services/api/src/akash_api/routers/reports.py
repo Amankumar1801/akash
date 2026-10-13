@@ -59,6 +59,7 @@ def create_report(body: ReportRequest, request: Request,
         prov_verifiable=_verifiable(ctx, view),
         pipeline_version=services.settings.pipeline_version,
         generated_at=datetime.now(UTC).isoformat(timespec="seconds"))
+    services.metrics.inc("reports_total", {"format": body.format})
     audit(ctx, request, principal, "report.create", str(body.investigation_id),
           f"{body.format}:{report.content_sha256[:12]}")
     if body.format == "json":

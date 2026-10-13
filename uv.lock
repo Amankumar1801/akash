@@ -14,6 +14,7 @@ members = [
     "akash-api",
     "akash-core",
     "akash-data",
+    "akash-eval",
     "akash-fusion",
     "akash-ml",
     "akash-provenance",
@@ -30,6 +31,7 @@ dependencies = [
     { name = "akash-api" },
     { name = "akash-core" },
     { name = "akash-data" },
+    { name = "akash-eval" },
     { name = "akash-fusion" },
     { name = "akash-ml" },
     { name = "akash-provenance" },
@@ -52,6 +54,7 @@ requires-dist = [
     { name = "akash-api", editable = "services/api" },
     { name = "akash-core", editable = "packages/akash_core" },
     { name = "akash-data", editable = "packages/akash_data" },
+    { name = "akash-eval", editable = "packages/akash_eval" },
     { name = "akash-fusion", editable = "packages/akash_fusion" },
     { name = "akash-ml", editable = "packages/akash_ml" },
     { name = "akash-provenance", editable = "packages/akash_provenance" },
@@ -91,6 +94,7 @@ dependencies = [
     { name = "akash-agent" },
     { name = "akash-core" },
     { name = "akash-data" },
+    { name = "akash-eval" },
     { name = "akash-fusion" },
     { name = "akash-ml" },
     { name = "akash-provenance" },
@@ -105,6 +109,7 @@ requires-dist = [
     { name = "akash-agent", editable = "packages/akash_agent" },
     { name = "akash-core", editable = "packages/akash_core" },
     { name = "akash-data", editable = "packages/akash_data" },
+    { name = "akash-eval", editable = "packages/akash_eval" },
     { name = "akash-fusion", editable = "packages/akash_fusion" },
     { name = "akash-ml", editable = "packages/akash_ml" },
     { name = "akash-provenance", editable = "packages/akash_provenance" },
@@ -149,6 +154,26 @@ requires-dist = [
     { name = "astropy", specifier = ">=6.0" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "numpy", specifier = ">=1.26" },
+]
+
+[[package]]
+name = "akash-eval"
+version = "0.0.1"
+source = { editable = "packages/akash_eval" }
+dependencies = [
+    { name = "akash-data" },
+    { name = "akash-science" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "akash-data", editable = "packages/akash_data" },
+    { name = "akash-science", editable = "packages/akash_science" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pydantic", specifier = ">=2.7" },
 ]
 
 [[package]]

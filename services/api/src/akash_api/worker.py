@@ -4,14 +4,17 @@ exceptions are logged in full server-side but never leak to the client."""
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 from uuid import UUID
 
 from akash_core.errors import AkashError, JobCancelled, ProviderError
+from akash_eval import Cancelled, ExperimentConfig, run_experiment
 from akash_fusion.assembler import investigate
 from akash_fusion.progress import ProgressEvent
 
 from .jobs import CANCELLED, FAILED, SUCCEEDED, JobStore
+from .research import ExperimentStore
 from .services import AppServices
 
 log = logging.getLogger("akash.worker")
@@ -31,6 +34,20 @@ def sanitize(e: BaseException) -> str:
 
 
 def execute_job(services: AppServices, job_id: str) -> None:
+    t0 = time.perf_counter()
+    try:
+        _execute_job(services, job_id)
+    finally:
+        with services.context() as ctx:
+            j = JobStore(ctx.conn).get(job_id)
+        if j is not None and j.terminal:
+            services.metrics.inc("jobs_total", {"kind": "investigation", "status": j.status,
+                                              "outcome": j.outcome or "none"})
+            services.metrics.observe("job_seconds", time.perf_counter() - t0,
+                                     {"kind": "investigation"})
+
+
+def _execute_job(services: AppServices, job_id: str) -> None:
     with services.context() as ctx:
         jobs = JobStore(ctx.conn)
         job = jobs.get(job_id)
@@ -80,3 +97,33 @@ def execute_job(services: AppServices, job_id: str) -> None:
             msg = sanitize(e)
             jobs.finish(job_id, FAILED, error=msg)
             jobs.append_event(job_id, "job_failed", {"error": msg})
+
+
+def execute_experiment(services: AppServices, eid: str) -> None:
+    t0 = time.perf_counter()
+    status = "failed"
+    with services.context() as ctx:
+        store = ExperimentStore(ctx.conn)
+        exp = store.get(eid)
+        if exp is None or exp.terminal:
+            return
+        if exp.cancel_requested or not store.mark_running(eid):
+            store.finish(eid, "cancelled")
+            services.metrics.inc("experiments_total", {"status": "cancelled"})
+            return
+        try:
+            cfg = ExperimentConfig.model_validate(exp.config)
+            result = run_experiment(
+                cfg, make_base=services.experiment_base,
+                progress=lambda d, _t: store.set_progress(eid, d),
+                cancelled=lambda: store.cancel_requested(eid), chunk=2)
+            store.finish(eid, "succeeded", result=result.model_dump(mode="json"))
+            status = "succeeded"
+        except Cancelled:
+            store.finish(eid, "cancelled")
+            status = "cancelled"
+        except Exception:  # noqa: BLE001  (an experiment must always end in a terminal state)
+            log.exception("experiment %s crashed", eid)
+            store.finish(eid, "failed", error="internal error (see server logs)")
+    services.metrics.inc("experiments_total", {"status": status})
+    services.metrics.observe("job_seconds", time.perf_counter() - t0, {"kind": "experiment"})

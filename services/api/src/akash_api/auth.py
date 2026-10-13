@@ -93,6 +93,12 @@ class ApiKeyStore:
                         (self._clock(), principal, action, resource, outcome, request_id))
         self._c.commit()
 
+    def audit_for_resource(self, resource: str) -> list[dict[str, str | float | None]]:
+        q = ("SELECT ts, principal, action, outcome, request_id FROM audit_log WHERE resource=? "
+             "ORDER BY id")
+        return [dict(zip(("ts", "principal", "action", "outcome", "request_id"), r, strict=True))
+                for r in self._c.execute(q, (resource,))]
+
     def audit_entries(self, action: str | None = None) -> list[dict[str, str | None]]:
         q = "SELECT principal, action, resource, outcome, request_id FROM audit_log"
         args: tuple[str, ...] = ()

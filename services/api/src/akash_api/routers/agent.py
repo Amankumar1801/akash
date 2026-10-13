@@ -52,6 +52,9 @@ def ask(investigation_id: UUID, body: AskIn, request: Request,
     view = ApiInvestigationView(ctx, investigation_id)
     agent = ResearchAgent(services.make_llm_provider())
     res = agent.ask(body.question, view)
+    services.metrics.inc("agent_runs_total", {
+        "mode": res.mode, "fallback": "yes" if res.fallback_reason else "no"})
+    services.metrics.inc("agent_tool_calls_total", by=sum(t.kind == "tool" for t in res.trace))
     audit(ctx, request, principal, "agent.ask", str(investigation_id),
           f"{res.mode}:{'fallback' if res.fallback_reason else 'ok'}")
     return AskOut(

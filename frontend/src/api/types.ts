@@ -90,3 +90,25 @@ export interface AskAnswer {
   retrieved_evidence_ids: string[]; trace: { kind: string; [k: string]: unknown }[];
   disclaimer: string;
 }
+
+export interface ExperimentConfig {
+  n_trials: number; n_controls: number; seed: number; period_min_d: number; period_max_d: number;
+  depth_min_ppm: number; depth_max_ppm: number; noise_source: "synthetic";
+}
+export interface Rate { k: number; n: number; rate: number | null; lo: number | null; hi: number | null }
+export interface RecoveryBin { label: string; lo: number; hi: number; recovered: Rate; alias_only: Rate }
+export interface ExperimentResult {
+  config: ExperimentConfig; config_sha256: string; noise_note: string; n_trials: number;
+  overall_recovery: Rate; by_snr: RecoveryBin[]; by_period: RecoveryBin[]; by_depth: RecoveryBin[];
+  snr_at_50pct: number | null; snr_at_90pct: number | null; false_alarm: Rate | null; caveats: string[];
+}
+export interface Experiment {
+  experiment_id: string; status: JobStatus; created_at: number; started_at: number | null;
+  finished_at: number | null; done: number; total: number; error: string | null;
+  cancel_requested: boolean; config: ExperimentConfig; result: ExperimentResult | null;
+}
+export type ReviewLabel = "interesting" | "not_interesting" | "false_positive" | "needs_followup" | "uncertain";
+export interface LabelRow {
+  label_id: number; reviewer: string; label: ReviewLabel; note: string | null;
+  triage_category: string | null; created_at: number;
+}
