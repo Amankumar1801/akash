@@ -17,6 +17,7 @@ members = [
     "akash-fusion",
     "akash-ml",
     "akash-provenance",
+    "akash-report",
     "akash-science",
 ]
 
@@ -32,6 +33,7 @@ dependencies = [
     { name = "akash-fusion" },
     { name = "akash-ml" },
     { name = "akash-provenance" },
+    { name = "akash-report" },
     { name = "akash-science" },
 ]
 
@@ -53,6 +55,7 @@ requires-dist = [
     { name = "akash-fusion", editable = "packages/akash_fusion" },
     { name = "akash-ml", editable = "packages/akash_ml" },
     { name = "akash-provenance", editable = "packages/akash_provenance" },
+    { name = "akash-report", editable = "packages/akash_report" },
     { name = "akash-science", editable = "packages/akash_science" },
 ]
 
@@ -91,6 +94,7 @@ dependencies = [
     { name = "akash-fusion" },
     { name = "akash-ml" },
     { name = "akash-provenance" },
+    { name = "akash-report" },
     { name = "akash-science" },
     { name = "fastapi" },
     { name = "uvicorn", extra = ["standard"] },
@@ -104,6 +108,7 @@ requires-dist = [
     { name = "akash-fusion", editable = "packages/akash_fusion" },
     { name = "akash-ml", editable = "packages/akash_ml" },
     { name = "akash-provenance", editable = "packages/akash_provenance" },
+    { name = "akash-report", editable = "packages/akash_report" },
     { name = "akash-science", editable = "packages/akash_science" },
     { name = "fastapi", specifier = ">=0.111" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
@@ -211,6 +216,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "akash-core", editable = "packages/akash_core" }]
+
+[[package]]
+name = "akash-report"
+version = "0.0.1"
+source = { editable = "packages/akash_report" }
+dependencies = [
+    { name = "akash-agent" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "akash-agent", editable = "packages/akash_agent" },
+    { name = "pydantic", specifier = ">=2.7" },
+]
 
 [[package]]
 name = "akash-science"

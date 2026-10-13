@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     registry_root: str = "./models"
     api_rate_per_min: int = 120  # general per-principal limit
     api_investigation_rate_per_min: int = 10  # expensive endpoint
+    api_report_rate_per_min: int = 30
     api_agent_rate_per_min: int = 20  # model calls cost money
     api_max_body_bytes: int = 1_000_000
     api_max_concurrent_jobs: int = 2

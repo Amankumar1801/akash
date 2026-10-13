@@ -194,3 +194,20 @@ describe("demo ask", () => {
     expect(a.statements.every((s) => !/discover/i.test(s.text))).toBe(true);
   });
 });
+
+describe("demo report", () => {
+  it("cites only existing evidence, escapes markup and carries the disclaimer", async () => {
+    const api = new DemoApi(0, false);
+    const j = await api.createInvestigation({ query: "TIC 1" });
+    for (let k = 0; k < 400; k++) {
+      if ((await api.getInvestigation(j.investigation_id)).status === "succeeded") break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    const ev = new Set((await api.evidence(j.investigation_id)).map((x) => x.evidence_id.slice(0, 8)));
+    const md = (await api.report(j.investigation_id, "markdown")).text;
+    for (const m of md.matchAll(/\[([0-9a-f]{8})\]/g)) expect(ev.has(m[1])).toBe(true);
+    expect(md).toContain("does not independently establish discoveries");
+    const html = (await api.report(j.investigation_id, "html")).text;
+    expect(html).not.toMatch(/<script/i);
+  });
+});

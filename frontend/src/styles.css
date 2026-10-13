@@ -274,3 +274,4 @@ dialog h2 { font-size: 22px; margin-bottom: 14px; }
 .kind-fact { color: var(--ink); }
 .cite { background: none; border: 1px solid var(--rule); color: var(--lamp); border-radius: 4px; padding: 0 6px; font-size: 12px; cursor: pointer; }
 .ask-disc, .ask-mode { font-size: 13px; }
+.report-pre { margin-top: 18px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 70vh; overflow: auto; border: 1px solid var(--rule-soft); border-radius: 8px; padding: 14px; font: 13.5px/1.55 ui-monospace, monospace; color: var(--ink); }
