@@ -15,7 +15,8 @@ from .auth import Principal, Role
 from .deps import rate_limited, require
 from .errors import install_error_handlers
 from .jobs import JobStore
-from .routers import agent, investigations, models, objects, reports
+from .research import ExperimentStore
+from .routers import agent, experiments, investigations, models, objects, ops, reports, review
 from .schemas import MeOut
 from .security import SecurityMiddleware
 from .services import AppServices
@@ -33,9 +34,11 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
         if services is not None:
             with services.context() as ctx:  # jobs orphaned by a crash can never finish
                 JobStore(ctx.conn).recover_orphans()
+                ExperimentStore(ctx.conn).recover_orphans()
         yield
         if services is not None:
             services.executor.shutdown(wait=False)
+            services.experiment_executor.shutdown(wait=False)
 
     app = FastAPI(title="AKASH", version=__version__, lifespan=lifespan,
                   docs_url="/docs" if settings.env == "dev" else None,
@@ -50,7 +53,8 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
                                            if o.strip()],
             allow_methods=["GET", "POST", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "X-API-Key", "Last-Event-ID"])
-    app.add_middleware(SecurityMiddleware, max_body_bytes=settings.api_max_body_bytes)
+    app.add_middleware(SecurityMiddleware, max_body_bytes=settings.api_max_body_bytes,
+                       metrics=services.metrics if services else None)
     install_error_handlers(app)
 
     health = APIRouter(prefix="/v1")
@@ -68,6 +72,6 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
                      key_id=principal.key_id)
 
     for r in (health, objects.router, investigations.router, models.router, agent.router,
-              reports.router):
+              reports.router, experiments.router, review.router, ops.router):
         app.include_router(r)
     return app

@@ -8,6 +8,7 @@ import { EvidenceStrip } from "../components/EvidenceStrip";
 import { FoldPlot, LightCurvePlot, useEpoch } from "../components/LightCurvePlots";
 import { ReportPanel } from "../components/ReportPanel";
 import { ProvGraphView } from "../components/ProvGraph";
+import { ReviewBar } from "../components/ReviewBar";
 import { Recorder } from "../components/Recorder";
 import { Sheet } from "../components/Sheet";
 import { Verdict } from "../components/Verdict";
@@ -127,6 +128,7 @@ export function Investigation() {
             <p className="prose">The search found nothing it could defend, so the classifier, anomaly and catalog steps were skipped. That says this data holds no detectable periodic signal, not that the star has no planets.</p>
           </section>
         )}
+        {detail?.status === "succeeded" && <ReviewBar id={id} />}
         {a && <div style={{ marginTop: 18 }}><Verdict a={a} evidence={evidence} onOpenEvidence={openEvidence} /></div>}
 
         {series.t.length > 0 && (

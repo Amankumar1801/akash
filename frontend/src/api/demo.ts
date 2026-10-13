@@ -4,7 +4,7 @@ import type { AkashApi } from "./client";
 import { ApiError } from "./client";
 import { minmaxIndices } from "../lib/lc";
 import type {
-  AskAnswer, Assessment, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
+  AskAnswer, Assessment, Experiment, ExperimentConfig, LabelRow, ReviewLabel, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
   JobStatus, LightCurveData, Me, ModelOut, ObjectOut, ObservationOut, Phase, ProvGraph, ProvNode,
   TriageCategory, VetStatus,
 } from "./types";
@@ -408,6 +408,21 @@ export class DemoApi implements AkashApi {
     return { ...d.job };
   }
   async evidence(id: string) { return this.get(id).built.evidence; }
+  private labels = new Map<string, LabelRow[]>();
+  async createExperiment(_c: ExperimentConfig): Promise<Experiment> {
+    throw new ApiError(501, "needs_live_api",
+      "The experiment lab runs the real pipeline, so it needs the live API. Demo data has no pipeline to test.");
+  }
+  async getExperiment(_id: string): Promise<Experiment> { throw new ApiError(404, "not_found", "experiment not found"); }
+  async cancelExperiment(_id: string): Promise<Experiment> { throw new ApiError(404, "not_found", "experiment not found"); }
+  async addLabel(id: string, label: ReviewLabel, note?: string): Promise<LabelRow> {
+    const d = this.get(id);
+    const row: LabelRow = { label_id: (this.labels.get(id)?.length ?? 0) + 1, reviewer: "demo", label,
+      note: note ?? null, triage_category: d.built.assessment?.triage_category ?? null, created_at: Date.now() / 1000 };
+    this.labels.set(id, [...(this.labels.get(id) ?? []), row]);
+    return row;
+  }
+  async listLabels(id: string): Promise<LabelRow[]> { this.get(id); return [...(this.labels.get(id) ?? [])]; }
   async report(id: string, format: "markdown" | "html") {
     const d = this.get(id);
     return demoReport(d.object.canonical_name, d.built.assessment ?? null, d.built.evidence, format);

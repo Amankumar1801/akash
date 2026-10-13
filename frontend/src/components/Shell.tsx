@@ -41,6 +41,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <nav className="nav" aria-label="Main">
           <NavLink to="/" end>Logbook</NavLink>
           <NavLink to="/models">Models</NavLink>
+          <NavLink to="/lab">Lab</NavLink>
         </nav>
         <span className="grow" />
         <button className="chip" onClick={toggleRed} aria-pressed={red} title="Red light keeps your eyes dark-adapted at the telescope">

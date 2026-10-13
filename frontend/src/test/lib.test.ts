@@ -211,3 +211,19 @@ describe("demo report", () => {
     expect(html).not.toMatch(/<script/i);
   });
 });
+
+describe("demo review and lab", () => {
+  it("keeps label history and refuses to fake experiments", async () => {
+    const api = new DemoApi(0, false);
+    const j = await api.createInvestigation({ query: "TIC 1" });
+    for (let k = 0; k < 400; k++) {
+      if ((await api.getInvestigation(j.investigation_id)).status === "succeeded") break;
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    await api.addLabel(j.investigation_id, "uncertain");
+    await api.addLabel(j.investigation_id, "false_positive");
+    expect((await api.listLabels(j.investigation_id)).map((l) => l.label)).toEqual(["uncertain", "false_positive"]);
+    await expect(api.createExperiment({ n_trials: 4, n_controls: 0, seed: 0, period_min_d: 1, period_max_d: 3,
+      depth_min_ppm: 500, depth_max_ppm: 900, noise_source: "synthetic" })).rejects.toMatchObject({ status: 501 });
+  });
+});

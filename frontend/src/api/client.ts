@@ -1,5 +1,5 @@
 import type {
-  AskAnswer, ReportFile,
+  AskAnswer, Experiment, ExperimentConfig, LabelRow, ReportFile, ReviewLabel,
   EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent, LightCurveData, Me,
   ModelOut, ObjectOut, ObservationOut, ProvGraph,
 } from "./types";
@@ -27,6 +27,11 @@ export interface AkashApi {
   provenance(id: string): Promise<ProvGraph>;
   models(): Promise<ModelOut[]>;
   ask(id: string, question: string): Promise<AskAnswer>;
+  createExperiment(c: ExperimentConfig): Promise<Experiment>;
+  getExperiment(id: string): Promise<Experiment>;
+  cancelExperiment(id: string): Promise<Experiment>;
+  addLabel(id: string, label: ReviewLabel, note?: string): Promise<LabelRow>;
+  listLabels(id: string): Promise<LabelRow[]>;
   report(id: string, format: "markdown" | "html"): Promise<ReportFile>;
   /** Ordered events after `after`; ends when the job reaches a terminal state. */
   events(id: string, after: number, signal: AbortSignal): AsyncGenerator<JobEvent>;
@@ -70,6 +75,12 @@ export class HttpApi implements AkashApi {
   evidence = (id: string) => this.req<EvidenceRow[]>("GET", `/v1/investigations/${id}/evidence`);
   provenance = (id: string) => this.req<ProvGraph>("GET", `/v1/investigations/${id}/provenance`);
   models = () => this.req<ModelOut[]>("GET", "/v1/models");
+  createExperiment = (c: ExperimentConfig) => this.req<Experiment>("POST", "/v1/experiments", c);
+  getExperiment = (id: string) => this.req<Experiment>("GET", `/v1/experiments/${id}`);
+  cancelExperiment = (id: string) => this.req<Experiment>("DELETE", `/v1/experiments/${id}`);
+  addLabel = (id: string, label: ReviewLabel, note?: string) =>
+    this.req<LabelRow>("POST", `/v1/investigations/${id}/labels`, note ? { label, note } : { label });
+  listLabels = (id: string) => this.req<LabelRow[]>("GET", `/v1/investigations/${id}/labels`);
   report = async (id: string, format: "markdown" | "html"): Promise<ReportFile> => {
     let res: Response;
     try {
