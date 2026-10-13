@@ -81,3 +81,11 @@ export const PHASES = ["fetch_data", "stellar_enrichment", "signal_search", "ano
   "ml_inference", "cross_match", "evidence_fusion", "persist"] as const;
 export type Phase = (typeof PHASES)[number];
 export type PhaseStatus = "started" | "completed" | "failed" | "skipped";
+
+export type StatementKind = "fact" | "prediction" | "interpretation" | "uncertainty" | "recommendation";
+export interface AskAnswer {
+  statements: { text: string; kind: StatementKind; evidence_ids: string[] }[];
+  mode: "llm" | "deterministic"; verified: boolean; note: string | null;
+  retrieved_evidence_ids: string[]; trace: { kind: string; [k: string]: unknown }[];
+  disclaimer: string;
+}

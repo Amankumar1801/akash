@@ -4,7 +4,7 @@ import type { AkashApi } from "./client";
 import { ApiError } from "./client";
 import { minmaxIndices } from "../lib/lc";
 import type {
-  Assessment, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
+  AskAnswer, Assessment, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
   JobStatus, LightCurveData, Me, ModelOut, ObjectOut, ObservationOut, Phase, ProvGraph, ProvNode,
   TriageCategory, VetStatus,
 } from "./types";
@@ -407,6 +407,22 @@ export class DemoApi implements AkashApi {
     return { ...d.job };
   }
   async evidence(id: string) { return this.get(id).built.evidence; }
+  async ask(id: string, question: string): Promise<AskAnswer> {
+    const { evidence } = this.get(id).built;
+    if (!question.trim()) throw new ApiError(422, "validation_error", "ask a question");
+    const fact = new Set(["observed_fact", "data_quality", "catalog_status", "cross_survey"]);
+    const pick = (chs: string[]) => evidence.filter((e) => chs.includes(e.channel)).slice(0, 3);
+    const st: AskAnswer["statements"] = [];
+    for (const e of pick(["catalog_status", "observed_fact", "data_quality"]))
+      st.push({ text: e.observation.replace(/\.$/, ""), kind: fact.has(e.channel) ? "fact" : "prediction", evidence_ids: [e.evidence_id] });
+    const models = pick(["model_prediction", "anomaly"]);
+    for (const e of models) st.push({ text: e.observation.replace(/\.$/, ""), kind: "prediction", evidence_ids: [e.evidence_id] });
+    if (models.length) st.push({ text: "Model outputs are predictions with stated uncertainty, not measurements.", kind: "uncertainty", evidence_ids: [models[0].evidence_id] });
+    if (!st.length) st.push({ text: "There is no evidence to summarise for this investigation.", kind: "recommendation", evidence_ids: [] });
+    return { statements: st, mode: "deterministic", verified: true, note: null,
+      retrieved_evidence_ids: st.flatMap((s) => s.evidence_ids), trace: [],
+      disclaimer: "AKASH assists investigation; it does not independently establish discoveries." };
+  }
   async provenance(id: string): Promise<ProvGraph> { return this.get(id).built.prov; }
   async models(): Promise<ModelOut[]> {
     return [
