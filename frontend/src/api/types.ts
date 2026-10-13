@@ -82,6 +82,7 @@ export const PHASES = ["fetch_data", "stellar_enrichment", "signal_search", "ano
 export type Phase = (typeof PHASES)[number];
 export type PhaseStatus = "started" | "completed" | "failed" | "skipped";
 
+export interface ReportFile { text: string; filename: string; mime: string }
 export type StatementKind = "fact" | "prediction" | "interpretation" | "uncertainty" | "recommendation";
 export interface AskAnswer {
   statements: { text: string; kind: StatementKind; evidence_ids: string[] }[];

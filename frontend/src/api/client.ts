@@ -1,5 +1,5 @@
 import type {
-  AskAnswer,
+  AskAnswer, ReportFile,
   EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent, LightCurveData, Me,
   ModelOut, ObjectOut, ObservationOut, ProvGraph,
 } from "./types";
@@ -27,6 +27,7 @@ export interface AkashApi {
   provenance(id: string): Promise<ProvGraph>;
   models(): Promise<ModelOut[]>;
   ask(id: string, question: string): Promise<AskAnswer>;
+  report(id: string, format: "markdown" | "html"): Promise<ReportFile>;
   /** Ordered events after `after`; ends when the job reaches a terminal state. */
   events(id: string, after: number, signal: AbortSignal): AsyncGenerator<JobEvent>;
 }
@@ -69,6 +70,19 @@ export class HttpApi implements AkashApi {
   evidence = (id: string) => this.req<EvidenceRow[]>("GET", `/v1/investigations/${id}/evidence`);
   provenance = (id: string) => this.req<ProvGraph>("GET", `/v1/investigations/${id}/provenance`);
   models = () => this.req<ModelOut[]>("GET", "/v1/models");
+  report = async (id: string, format: "markdown" | "html"): Promise<ReportFile> => {
+    let res: Response;
+    try {
+      res = await fetch(this.base + "/v1/reports", { method: "POST",
+        headers: this.headers({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ investigation_id: id, format }) });
+    } catch {
+      throw new ApiError(0, "unreachable", "Could not reach the AKASH API. Check the address in Settings, or switch to demo data.");
+    }
+    if (!res.ok) throw await toApiError(res);
+    return { text: await res.text(), filename: `akash-report-${id.slice(0, 8)}.${format === "html" ? "html" : "md"}`,
+      mime: format === "html" ? "text/html" : "text/markdown" };
+  };
   ask = (id: string, question: string) =>
     this.req<AskAnswer>("POST", `/v1/investigations/${id}/ask`, { question });
 

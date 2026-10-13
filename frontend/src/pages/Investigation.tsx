@@ -6,6 +6,7 @@ import type { EvidenceRow, InvestigationDetail, JobEvent, ObjectOut, ProvGraph }
 import { Ask } from "../components/Ask";
 import { EvidenceStrip } from "../components/EvidenceStrip";
 import { FoldPlot, LightCurvePlot, useEpoch } from "../components/LightCurvePlots";
+import { ReportPanel } from "../components/ReportPanel";
 import { ProvGraphView } from "../components/ProvGraph";
 import { Recorder } from "../components/Recorder";
 import { Sheet } from "../components/Sheet";
@@ -14,7 +15,7 @@ import { follow } from "../lib/follow";
 import { cleanSeries, type Series } from "../lib/lc";
 import { reduceLanes } from "../lib/phases";
 
-type Tab = "summary" | "evidence" | "provenance" | "ask";
+type Tab = "summary" | "evidence" | "provenance" | "ask" | "report";
 const EMPTY: Series = { t: [], f: [] };
 
 export function Investigation() {
@@ -143,9 +144,9 @@ export function Investigation() {
         {detail?.status === "succeeded" && (
           <>
             <div className="tabs" role="tablist" aria-label="Result sections">
-              {(["summary", "evidence", "provenance", "ask"] as Tab[]).map((t) => (
+              {(["summary", "evidence", "provenance", "ask", "report"] as Tab[]).map((t) => (
                 <button key={t} role="tab" id={`tab-${t}`} aria-selected={tab === t} aria-controls={`panel-${t}`} onClick={() => setTab(t)}>
-                  {{ summary: "Readouts", evidence: `Evidence${evidence.length ? ` (${evidence.length})` : ""}`, provenance: "Provenance", ask: "Ask" }[t]}
+                  {{ summary: "Readouts", evidence: `Evidence${evidence.length ? ` (${evidence.length})` : ""}`, provenance: "Provenance", ask: "Ask", report: "Report" }[t]}
                 </button>))}
             </div>
             <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
@@ -153,6 +154,7 @@ export function Investigation() {
               {tab === "summary" && !a && <p className="empty">There are no readouts because no signal was found. The evidence tab shows what was checked.</p>}
               {tab === "evidence" && (evidence.length ? <EvidenceStrip rows={evidence} selected={selected} onSelect={setSelected} />
                 : <div className="skel" style={{ height: 160, marginTop: 20 }} />)}
+              {tab === "report" && <ReportPanel id={id} />}
               {tab === "ask" && <Ask id={id} onOpenEvidence={openEvidence} />}
               {tab === "provenance" && (prov ? <ProvGraphView g={prov} /> : <div className="skel" style={{ height: 160, marginTop: 20 }} />)}
             </div>

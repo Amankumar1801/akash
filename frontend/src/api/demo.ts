@@ -9,6 +9,7 @@ import type {
   TriageCategory, VetStatus,
 } from "./types";
 import { PHASES } from "./types";
+import { demoReport } from "../lib/report";
 
 export function rng(seed: number): () => number {
   let a = seed >>> 0;
@@ -407,6 +408,10 @@ export class DemoApi implements AkashApi {
     return { ...d.job };
   }
   async evidence(id: string) { return this.get(id).built.evidence; }
+  async report(id: string, format: "markdown" | "html") {
+    const d = this.get(id);
+    return demoReport(d.object.canonical_name, d.built.assessment ?? null, d.built.evidence, format);
+  }
   async ask(id: string, question: string): Promise<AskAnswer> {
     const { evidence } = this.get(id).built;
     if (!question.trim()) throw new ApiError(422, "validation_error", "ask a question");

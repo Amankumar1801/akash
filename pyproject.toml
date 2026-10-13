@@ -3,7 +3,7 @@ name = "akash"
 version = "0.0.1"
 description = "AKASH: AI Astronomical Discovery Engine (workspace root)"
 requires-python = ">=3.11"
-dependencies = ["akash-core", "akash-api", "akash-data", "akash-provenance", "akash-science", "akash-ml", "akash-fusion", "akash-agent"]
+dependencies = ["akash-core", "akash-api", "akash-data", "akash-provenance", "akash-science", "akash-ml", "akash-fusion", "akash-agent", "akash-report"]
 
 [tool.uv.workspace]
 members = ["packages/*", "services/*"]
@@ -17,6 +17,7 @@ akash-science = { workspace = true }
 akash-ml = { workspace = true }
 akash-fusion = { workspace = true }
 akash-agent = { workspace = true }
+akash-report = { workspace = true }
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-cov", "httpx>=0.27", "ruff>=0.6", "mypy>=1.11"]

@@ -34,6 +34,12 @@ _NUM = re.compile(r"(?<![\w.])-?\d[\d,]*(?:\.\d+)?%?")
 _ID_PREFIX = re.compile(r"(?:TIC|KIC|TOI|KOI|DR|Sector|Gaia)[\s-]*$", re.I)
 
 
+def forbidden_wording(text: str) -> list[str]:
+    """Codes of wording AKASH never asserts (discovery, certainty, ...). Negated text passes."""
+    return [code for code, pat, neg_ok in _FORBIDDEN
+            if pat.search(text) and not (neg_ok and _NEG.search(text))]
+
+
 def numbers_in(text: str) -> list[float | None]:
     """Numbers a statement asserts. Catalog identifiers and huge integers are not claims."""
     out: list[float | None] = []
