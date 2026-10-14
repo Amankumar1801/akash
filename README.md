@@ -29,6 +29,7 @@ detection, cross-survey evidence, explainability, uncertainty, and provenance.
 - **Phase 8** complete: read-only, bounded research agent (`packages/akash_agent`, ADR 0009) with prompt-injection defences, a citation verifier and a deterministic fallback; `POST /v1/investigations/{id}/ask` and an Ask tab. No live LLM has been exercised; the provider is tested against a mock transport only.
 - **Phase 9** complete: deterministic 13-section scientific reports (`packages/akash_report`, ADR 0010) with Markdown/HTML export, `POST /v1/reports` and a Report tab. Built from stored evidence only; no model writes any of it. No PDF output; the demo-mode report is a shorter client-side version.
 - **Phase 10** complete: injection-recovery experiment lab (`packages/akash_eval`, `/v1/experiments`, Lab page) with Wilson intervals and explicit synthetic-noise caveats; metrics (`/v1/metrics`) and per-investigation traces; human review labels with an export for active learning (ADR 0011). Sensitivity is measured on synthetic noise only; metrics are per-process; nothing retrains automatically.
+- **Phase 11** complete (with one caveat): single-node deployment (ADR 0012, `docs/deploy.md`): fail-fast production preflight, `/v1/ready`, verified backup and restore, hardened API and web images, nginx with a strict CSP, production compose file, CI image build and smoke test. The images were not built here (no Docker daemon); the CI `images` job is their first real test. Scale-out (queue, Postgres, object store) is not built.
 
 ## Quickstart
 ```bash

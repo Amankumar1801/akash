@@ -8,8 +8,10 @@ from contextlib import asynccontextmanager
 
 from akash_core import __version__
 from akash_core.config import Settings
+from akash_core.preflight import enforce
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .auth import Principal, Role
 from .deps import rate_limited, require
@@ -28,6 +30,7 @@ DISCLAIMER = (
 
 def create_app(settings: Settings | None = None, services: AppServices | None = None) -> FastAPI:
     settings = settings or (services.settings if services else Settings())
+    enforce(settings)  # production refuses to start on a bad configuration
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -64,6 +67,25 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
         return {"status": "ok", "version": __version__,
                 "pipeline_version": settings.pipeline_version, "env": settings.env,
                 "disclaimer": DISCLAIMER}
+
+    @health.get("/ready")
+    def ready() -> JSONResponse:
+        """Readiness for orchestrators: can this instance actually serve? (Liveness is /health.)"""
+        checks: dict[str, str] = {}
+        if services is None:
+            checks["services"] = "not configured"
+        else:
+            try:
+                with services.context() as ctx:
+                    ctx.conn.execute("SELECT 1").fetchone()
+                checks["database"] = "ok"
+            except Exception:  # noqa: BLE001  (reported as a flag, never raised)
+                checks["database"] = "unavailable"
+            checks["classifier"] = "configured" if settings.transit_model else "not configured"
+        bad = [k for k, v in checks.items() if v in ("not configured", "unavailable")
+               and k != "classifier"]
+        return JSONResponse({"status": "unready" if bad else "ready", "checks": checks},
+                            status_code=503 if bad else 200)
 
     @health.get("/me", response_model=MeOut, dependencies=[
         Depends(rate_limited("general", "api_rate_per_min"))])
