@@ -40,6 +40,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <NavLink to="/" className="mark" aria-label="Akash home"><Mark />Akash</NavLink>
         <nav className="nav" aria-label="Main">
           <NavLink to="/" end>Logbook</NavLink>
+          <NavLink to="/candidates">Candidates</NavLink>
+          <NavLink to="/sky">Sky</NavLink>
           <NavLink to="/models">Models</NavLink>
           <NavLink to="/lab">Lab</NavLink>
         </nav>

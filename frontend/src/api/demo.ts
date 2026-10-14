@@ -4,12 +4,13 @@ import type { AkashApi } from "./client";
 import { ApiError } from "./client";
 import { minmaxIndices } from "../lib/lc";
 import type {
-  AskAnswer, Assessment, Experiment, ExperimentConfig, LabelRow, ReviewLabel, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
+  AskAnswer, DiscoveryCard, DiscoveryPage, FeedQuery, SkyOut, Assessment, Experiment, ExperimentConfig, LabelRow, ReviewLabel, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
   JobStatus, LightCurveData, Me, ModelOut, ObjectOut, ObservationOut, Phase, ProvGraph, ProvNode,
   TriageCategory, VetStatus,
 } from "./types";
 import { PHASES } from "./types";
 import { demoReport } from "../lib/report";
+import { applyFeed, cardFrom } from "../lib/feed";
 
 export function rng(seed: number): () => number {
   let a = seed >>> 0;
@@ -409,6 +410,37 @@ export class DemoApi implements AkashApi {
   }
   async evidence(id: string) { return this.get(id).built.evidence; }
   private labels = new Map<string, LabelRow[]>();
+  /** Demo feed: every scenario appears, so the queue has something to rank. */
+  private async ensureAll() {
+    for (let n = 1; n <= SCENARIOS.length; n++) {
+      const s = SCENARIOS[n - 1], o = this.makeObject(`TIC ${900000000 + n}`, s);
+      if ([...this.jobs.values()].some((d) => d.object.object_id === o.object_id)) continue;
+      const d = this.mint(o, s, { object_id: o.object_id, mission: "tess", mode: "deep" }, 600 * n);
+      await this.run(d, 0);
+    }
+  }
+  private cards(): DiscoveryCard[] {
+    const seen = new Set<string>(), out: DiscoveryCard[] = [];
+    const ds = [...this.jobs.values()].sort((a, b) => (b.job.finished_at ?? 0) - (a.job.finished_at ?? 0));
+    for (const d of ds) {
+      const a = d.built.assessment;
+      if (d.job.status !== "succeeded" || !a || seen.has(d.object.object_id)) continue;
+      seen.add(d.object.object_id);
+      const hist = this.labels.get(d.job.investigation_id) ?? [];
+      out.push(cardFrom(a, d.object.canonical_name, d.object.ra_deg, d.object.dec_deg, d.job.investigation_id,
+        d.job.finished_at, hist.length ? hist[hist.length - 1].label : null));
+    }
+    return out;
+  }
+  async discoveries(q: FeedQuery): Promise<DiscoveryPage> { await this.ensureAll(); return applyFeed(this.cards(), q); }
+  async sky(): Promise<SkyOut> {
+    await this.ensureAll();
+    const pts = this.cards().filter((c) => c.ra_deg !== null && c.dec_deg !== null).map((c) => ({
+      investigation_id: c.investigation_id, name: c.name, ra_deg: c.ra_deg as number, dec_deg: c.dec_deg as number,
+      category: c.triage_category, anomaly_percentile: c.anomaly?.percentile ?? null }));
+    return { points: pts, n: pts.length, capped: false, truncated: false,
+      note: "Only objects that have been investigated appear here. This is not a survey map." };
+  }
   async createExperiment(_c: ExperimentConfig): Promise<Experiment> {
     throw new ApiError(501, "needs_live_api",
       "The experiment lab runs the real pipeline, so it needs the live API. Demo data has no pipeline to test.");

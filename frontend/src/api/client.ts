@@ -1,5 +1,5 @@
 import type {
-  AskAnswer, Experiment, ExperimentConfig, LabelRow, ReportFile, ReviewLabel,
+  AskAnswer, DiscoveryPage, FeedQuery, SkyOut, Experiment, ExperimentConfig, LabelRow, ReportFile, ReviewLabel,
   EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent, LightCurveData, Me,
   ModelOut, ObjectOut, ObservationOut, ProvGraph,
 } from "./types";
@@ -32,6 +32,8 @@ export interface AkashApi {
   cancelExperiment(id: string): Promise<Experiment>;
   addLabel(id: string, label: ReviewLabel, note?: string): Promise<LabelRow>;
   listLabels(id: string): Promise<LabelRow[]>;
+  discoveries(q: FeedQuery): Promise<DiscoveryPage>;
+  sky(): Promise<SkyOut>;
   report(id: string, format: "markdown" | "html"): Promise<ReportFile>;
   /** Ordered events after `after`; ends when the job reaches a terminal state. */
   events(id: string, after: number, signal: AbortSignal): AsyncGenerator<JobEvent>;
@@ -81,6 +83,18 @@ export class HttpApi implements AkashApi {
   addLabel = (id: string, label: ReviewLabel, note?: string) =>
     this.req<LabelRow>("POST", `/v1/investigations/${id}/labels`, note ? { label, note } : { label });
   listLabels = (id: string) => this.req<LabelRow[]>("GET", `/v1/investigations/${id}/labels`);
+  discoveries = (q: FeedQuery) => {
+    const p = new URLSearchParams();
+    for (const c of q.category ?? []) p.append("category", c);
+    if (q.exclude_known) p.set("exclude_known", "true");
+    if (q.min_anomaly_percentile !== undefined) p.set("min_anomaly_percentile", String(q.min_anomaly_percentile));
+    if (q.min_snr !== undefined) p.set("min_snr", String(q.min_snr));
+    if (q.reviewed && q.reviewed !== "any") p.set("reviewed", q.reviewed);
+    if (q.q) p.set("q", q.q);
+    p.set("sort", q.sort ?? "triage"); p.set("limit", String(q.limit ?? 25)); p.set("offset", String(q.offset ?? 0));
+    return this.req<DiscoveryPage>("GET", `/v1/discoveries?${p.toString()}`);
+  };
+  sky = () => this.req<SkyOut>("GET", "/v1/sky");
   report = async (id: string, format: "markdown" | "html"): Promise<ReportFile> => {
     let res: Response;
     try {

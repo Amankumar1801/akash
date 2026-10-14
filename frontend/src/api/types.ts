@@ -112,3 +112,30 @@ export interface LabelRow {
   label_id: number; reviewer: string; label: ReviewLabel; note: string | null;
   triage_category: string | null; created_at: number;
 }
+
+export interface DiscoveryCard {
+  investigation_id: string; object_id: string; name: string; ra_deg: number | null; dec_deg: number | null;
+  triage_category: TriageCategory;
+  anomaly: { percentile: number; reference_population: string; category: string } | null;
+  prediction: { probability: number; interval_90: [number, number]; calibrated: boolean; models_disagree: boolean } | null;
+  transit: { snr: number; period_d: number; depth_ppm: number } | null;
+  signal_strength: "none" | "weak" | "moderate" | "strong";
+  known_status: string | null; known_source: string | null; data_quality: "A" | "B" | "C" | "D";
+  vetting: Record<string, number>; n_conflicts: number; recommended_followup: string[];
+  finished_at: number | null;
+  review: { n_reviewers: number; mine: ReviewLabel | null; labels: ReviewLabel[] };
+}
+export type FeedSort = "triage" | "anomaly" | "snr" | "recent";
+export interface FeedQuery {
+  category?: TriageCategory[]; exclude_known?: boolean; min_anomaly_percentile?: number; min_snr?: number;
+  reviewed?: "any" | "reviewed" | "unreviewed"; q?: string; sort?: FeedSort; limit?: number; offset?: number;
+}
+export interface DiscoveryPage {
+  items: DiscoveryCard[]; total: number; scanned: number; truncated: boolean;
+  ranking: { sort: FeedSort; rule: string; caveat: string }; disclaimer: string;
+}
+export interface SkyPoint {
+  investigation_id: string; name: string; ra_deg: number; dec_deg: number; category: TriageCategory;
+  anomaly_percentile: number | null;
+}
+export interface SkyOut { points: SkyPoint[]; n: number; capped: boolean; truncated: boolean; note: string }

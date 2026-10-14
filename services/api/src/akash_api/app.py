@@ -18,7 +18,17 @@ from .deps import rate_limited, require
 from .errors import install_error_handlers
 from .jobs import JobStore
 from .research import ExperimentStore
-from .routers import agent, experiments, investigations, models, objects, ops, reports, review
+from .routers import (
+    agent,
+    discoveries,
+    experiments,
+    investigations,
+    models,
+    objects,
+    ops,
+    reports,
+    review,
+)
 from .schemas import MeOut
 from .security import SecurityMiddleware
 from .services import AppServices
@@ -94,6 +104,7 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
                      key_id=principal.key_id)
 
     for r in (health, objects.router, investigations.router, models.router, agent.router,
-              reports.router, experiments.router, review.router, ops.router):
+              reports.router, experiments.router, review.router, ops.router,
+              discoveries.router):
         app.include_router(r)
     return app

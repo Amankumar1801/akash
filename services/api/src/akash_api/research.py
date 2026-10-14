@@ -150,6 +150,13 @@ class LabelStore:
             "SELECT label_id, reviewer, label, note, triage_category, created_at FROM review_label"
             " WHERE investigation_id=? ORDER BY label_id", (investigation_id,))]
 
+    def latest_by_investigation(self) -> dict[str, list[tuple[str, str]]]:
+        """{investigation_id: [(reviewer, label), ...]} using each reviewer's latest label."""
+        out: dict[str, list[tuple[str, str]]] = {}
+        for r in self.export_latest():
+            out.setdefault(r["investigation_id"], []).append((r["reviewer"], r["label"]))
+        return out
+
     def export_latest(self) -> list[dict[str, Any]]:
         """Latest label per (investigation, reviewer): the unit an active-learning loop consumes."""
         q = ("SELECT investigation_id, reviewer, label, triage_category, created_at FROM "
