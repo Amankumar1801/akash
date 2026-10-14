@@ -1,0 +1,35 @@
+# Single-node production stack: web (nginx + static UI) -> api (one worker, SQLite on a volume).
+#   cp infra/compose/prod.env.example .env   # then edit
+#   docker compose -f infra/compose/docker-compose.prod.yml --env-file .env up -d --build
+# Put a TLS terminator (Caddy, a cloud load balancer) in front of port 8080; nothing here speaks TLS.
+name: akash
+services:
+  api:
+    build: { context: ../.., dockerfile: infra/docker/api.Dockerfile }
+    restart: unless-stopped
+    env_file: [../../.env]
+    environment:
+      AKASH_ENV: prod
+    volumes:
+      - akash-data:/data
+      - ${AKASH_MODELS_DIR:-../../models}:/models:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    expose: ["8000"]
+    deploy: { resources: { limits: { memory: 2g } } }
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args: { VITE_DEFAULT_MODE: live }
+    restart: unless-stopped
+    depends_on: { api: { condition: service_healthy } }
+    ports: ["${AKASH_WEB_PORT:-8080}:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+volumes:
+  akash-data: {}

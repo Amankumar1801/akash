@@ -1,3 +1,5 @@
+# NOT USED by the current API (it runs on SQLite and in-process jobs). Kept as scaffolding for the
+# Postgres, Redis and object-store upgrade path described in docs/deploy.md.
 # Local dev dependencies. API/worker run via `uv run` on the host in Phase 0.
 services:
   postgres:

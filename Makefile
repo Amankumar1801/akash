@@ -13,3 +13,6 @@ live:       ; uv run pytest -m network tests/live
 web:        ; cd frontend && npm install && npm run dev
 web-test:   ; cd frontend && npm test && npm run typecheck
 web-build:  ; cd frontend && npm run build
+preflight:   ; uv run python scripts/preflight.py
+backup:      ; uv run python scripts/backup.py create --out backups/akash-$$(date +%F).tar.gz
+images:      ; docker build -f infra/docker/api.Dockerfile -t akash-api . && docker build -f infra/docker/web.Dockerfile -t akash-web .
