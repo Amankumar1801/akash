@@ -6,6 +6,7 @@ import { Investigation } from "./pages/Investigation";
 import { Lab } from "./pages/Lab";
 import { Models } from "./pages/Models";
 import { SkyMap } from "./pages/SkyMap";
+import { Spectra } from "./pages/Spectra";
 
 export function App() {
   return (
@@ -16,6 +17,7 @@ export function App() {
         <Route path="/models" element={<Models />} />
         <Route path="/candidates" element={<Discoveries />} />
         <Route path="/sky" element={<SkyMap />} />
+        <Route path="/spectra" element={<Spectra />} />
         <Route path="/lab" element={<Lab />} />
         <Route path="*" element={<section className="section"><h2>That page does not exist</h2><p className="prose" style={{ marginTop: 8 }}>Use the logbook to find an investigation.</p></section>} />
       </Routes>

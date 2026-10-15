@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
-import type { EvidenceRow, InvestigationDetail, JobEvent, ObjectOut, ProvGraph } from "../api/types";
+import type { EvidenceRow, InvestigationDetail, JobEvent, ObjectOut, ProvGraph, VariabilityResult } from "../api/types";
 import { Ask } from "../components/Ask";
 import { EvidenceStrip } from "../components/EvidenceStrip";
 import { FoldPlot, LightCurvePlot, useEpoch } from "../components/LightCurvePlots";
@@ -11,6 +11,7 @@ import { ProvGraphView } from "../components/ProvGraph";
 import { ReviewBar } from "../components/ReviewBar";
 import { Recorder } from "../components/Recorder";
 import { Sheet } from "../components/Sheet";
+import { VariabilityPanel } from "../components/VariabilityPanel";
 import { Verdict } from "../components/Verdict";
 import { follow } from "../lib/follow";
 import { cleanSeries, type Series } from "../lib/lc";
@@ -28,6 +29,7 @@ export function Investigation() {
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
   const [prov, setProv] = useState<ProvGraph | null>(null);
   const [series, setSeries] = useState<Series>(EMPTY);
+  const [vari, setVari] = useState<VariabilityResult | null>(null);
   const [err, setErr] = useState("");
   const [lost, setLost] = useState(false);
   const [tab, setTab] = useState<Tab>("summary");
@@ -74,6 +76,7 @@ export function Investigation() {
         if (!obs.length) return;
         const lc = await api.observationData(obs[0].obs_id, 4000);
         setSeries(cleanSeries(lc.time_bjd, lc.flux, lc.quality_flagged));
+        api.variability(obs[0].obs_id).then(setVari).catch(() => setVari(null));
       } catch { /* the plot is optional; the findings do not depend on it */ }
     })();
   }, [api, fetched, detail?.object_id]);
@@ -137,6 +140,7 @@ export function Investigation() {
             {period && a?.transit && <FoldPlot series={series} period={period} t0={t0} durationH={a.transit.duration_h} />}
           </div>
         )}
+        {vari && vari.character !== "insufficient_data" && <VariabilityPanel v={vari} />}
         {period && series.t.length > 0 && (
           <p className="muted" style={{ fontSize: 13, marginTop: 8, maxWidth: "70ch" }}>
             The pipeline reports period, depth and duration. The centring of the folded curve is estimated in your browser for display only.

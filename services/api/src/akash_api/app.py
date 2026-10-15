@@ -28,6 +28,7 @@ from .routers import (
     ops,
     reports,
     review,
+    science,
 )
 from .schemas import MeOut
 from .security import SecurityMiddleware
@@ -105,6 +106,6 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
 
     for r in (health, objects.router, investigations.router, models.router, agent.router,
               reports.router, experiments.router, review.router, ops.router,
-              discoveries.router):
+              discoveries.router, science.router):
         app.include_router(r)
     return app

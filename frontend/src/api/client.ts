@@ -1,7 +1,7 @@
 import type {
   AskAnswer, DiscoveryPage, FeedQuery, SkyOut, Experiment, ExperimentConfig, LabelRow, ReportFile, ReviewLabel,
   EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent, LightCurveData, Me,
-  ModelOut, ObjectOut, ObservationOut, ProvGraph,
+  ModelOut, ModelDetail, ObjectOut, ObservationOut, ProvGraph, SpectrumRequest, SpectrumResult, VariabilityResult,
 } from "./types";
 
 export class ApiError extends Error {
@@ -26,6 +26,9 @@ export interface AkashApi {
   evidence(id: string): Promise<EvidenceRow[]>;
   provenance(id: string): Promise<ProvGraph>;
   models(): Promise<ModelOut[]>;
+  modelDetail(name: string, version: string): Promise<ModelDetail>;
+  analyzeSpectrum(req: SpectrumRequest): Promise<SpectrumResult>;
+  variability(obsId: string): Promise<VariabilityResult>;
   ask(id: string, question: string): Promise<AskAnswer>;
   createExperiment(c: ExperimentConfig): Promise<Experiment>;
   getExperiment(id: string): Promise<Experiment>;
@@ -77,6 +80,10 @@ export class HttpApi implements AkashApi {
   evidence = (id: string) => this.req<EvidenceRow[]>("GET", `/v1/investigations/${id}/evidence`);
   provenance = (id: string) => this.req<ProvGraph>("GET", `/v1/investigations/${id}/provenance`);
   models = () => this.req<ModelOut[]>("GET", "/v1/models");
+  modelDetail = (name: string, version: string) =>
+    this.req<ModelDetail>("GET", `/v1/models/${encodeURIComponent(name)}/${encodeURIComponent(version)}`);
+  analyzeSpectrum = (req: SpectrumRequest) => this.req<SpectrumResult>("POST", "/v1/spectra/analyze", req);
+  variability = (obsId: string) => this.req<VariabilityResult>("GET", `/v1/observations/${obsId}/variability`);
   createExperiment = (c: ExperimentConfig) => this.req<Experiment>("POST", "/v1/experiments", c);
   getExperiment = (id: string) => this.req<Experiment>("GET", `/v1/experiments/${id}`);
   cancelExperiment = (id: string) => this.req<Experiment>("DELETE", `/v1/experiments/${id}`);

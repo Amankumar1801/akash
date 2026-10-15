@@ -6,8 +6,9 @@ import { minmaxIndices } from "../lib/lc";
 import type {
   AskAnswer, DiscoveryCard, DiscoveryPage, FeedQuery, SkyOut, Assessment, Experiment, ExperimentConfig, LabelRow, ReviewLabel, Direction, EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent,
   JobStatus, LightCurveData, Me, ModelOut, ObjectOut, ObservationOut, Phase, ProvGraph, ProvNode,
-  TriageCategory, VetStatus,
+  TriageCategory, VetStatus, ModelDetail, SpectrumRequest, SpectrumResult, VariabilityResult,
 } from "./types";
+import sample from "./spectrum_sample.json";
 import { PHASES } from "./types";
 import { demoReport } from "../lib/report";
 import { applyFeed, cardFrom } from "../lib/feed";
@@ -483,6 +484,21 @@ export class DemoApi implements AkashApi {
       { name: "anomaly-ensemble", version: "v1", created_at: "2026-10-03T12:30:00Z", feature_version: "a2",
         data_hash: "41be90cc27aa", n: { reference: 2000, calibration: 500 } },
     ];
+  }
+  async modelDetail(name: string, version: string): Promise<ModelDetail> {
+    const m = (await this.models()).find((x) => x.name === name && x.version === version);
+    if (!m) throw new ApiError(404, "not_found", "model not found");
+    return { metadata: { ...m, note: "Demo registry entry. Real entries also carry training metrics." },
+      model_card: `# ${name} ${version}\n\nDemo model card. A real card records training data, metrics, calibration and limits.` };
+  }
+  async analyzeSpectrum(req: SpectrumRequest): Promise<SpectrumResult> {
+    const same = req.wavelength_a.length === sample.wavelength_a.length && req.wavelength_a[0] === sample.wavelength_a[0]
+      && req.flux.every((v, i) => v === sample.flux[i]);
+    if (!same) throw new ApiError(501, "demo_unavailable", "Demo mode can only show its built-in sample spectrum. Connect to a live API to analyse your own.");
+    return { ...(sample.analysis as unknown as SpectrumResult), label: req.label ?? null, precomputed: true };
+  }
+  async variability(_obsId: string): Promise<VariabilityResult> {
+    throw new ApiError(501, "demo_unavailable", "Variability descriptors need a live API.");
   }
   async *events(id: string, after: number, signal: AbortSignal): AsyncGenerator<JobEvent> {
     const d = this.get(id);
