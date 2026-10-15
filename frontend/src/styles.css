@@ -316,3 +316,17 @@ dialog h2 { font-size: 22px; margin-bottom: 14px; }
 .sky-side h3 { margin: 0; }
 .sky-list { columns: 2; padding-left: 18px; font-size: 14px; }
 @media (max-width: 760px) { .sky-wrap { grid-template-columns: minmax(0, 1fr); } .dgrid > div { grid-template-columns: 1fr; gap: 0; } .sky-list { columns: 1; } }
+
+/* Spectra and model observatory */
+.spec-input { display: grid; gap: 10px; margin-top: 16px; max-width: 980px; }
+.spec-input label { display: grid; gap: 4px; font-size: 13.5px; color: var(--ink-3); }
+.spec-input textarea { background: transparent; color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; padding: 10px; font: 13px ui-monospace, monospace; resize: vertical; min-width: 0; }
+.spec-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.spec-actions label.btn { display: inline-block; cursor: pointer; color: inherit; font-size: inherit; }
+.spec-plot { width: 100%; height: 300px; margin-top: 18px; border: 1px solid var(--rule-soft); border-radius: 12px; }
+.model-detail { margin-top: 18px; border: 1px solid var(--rule-soft); border-radius: 12px; padding: 16px; max-width: 980px; }
+.model-detail h3, .model-detail h4 { margin: 0 0 8px; }
+.model-detail h4 { margin-top: 16px; }
+.meta-pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 12.5px ui-monospace, monospace; color: var(--ink-2, var(--ink)); }
+.card-text { border: 1px solid var(--rule-soft); border-radius: 8px; padding: 12px; max-height: 360px; overflow: auto; }
+.tbl tr[aria-selected="true"] td { background: rgba(255, 255, 255, 0.04); }

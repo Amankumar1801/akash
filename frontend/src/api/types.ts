@@ -139,3 +139,32 @@ export interface SkyPoint {
   anomaly_percentile: number | null;
 }
 export interface SkyOut { points: SkyPoint[]; n: number; capped: boolean; truncated: boolean; note: string }
+
+export interface SpectrumRequest {
+  wavelength_a: number[]; flux: (number | null)[]; flux_err?: (number | null)[] | null; label?: string;
+}
+export interface SpectrumLine {
+  wavelength_a: number; kind: "emission" | "absorption"; equivalent_width_a: number; snr: number;
+  peak_sigma: number; fwhm_kms: number | null; n_pixels: number; matched: string | null;
+}
+export interface RedshiftCandidate {
+  z: number; n_matched: number; z_scatter_kms: number;
+  matched_lines: { rest: string; observed_a: number; offset_kms: number }[];
+}
+export type RedshiftStatus = "no_lines" | "single_line_only" | "no_match" | "candidate_redshift" | "ambiguous";
+export interface SpectrumResult {
+  input_sha256: string; n_points: number; n_masked: number; wavelength_range_a: [number, number];
+  median_dispersion_a: number; noise_sigma: number; noise_source: "flux_err" | "mad";
+  lines: SpectrumLine[];
+  redshift: { status: RedshiftStatus; candidates: RedshiftCandidate[]; tier: "tentative" | "supported" | null; note: string };
+  broad_emission: string[]; caveats: string[]; disclaimer: string; label?: string | null; precomputed?: boolean;
+}
+export type VariabilityCharacter = "insufficient_data" | "no_significant_variability" | "periodic_like" | "stochastic_aperiodic";
+export interface VariabilityResult {
+  character: VariabilityCharacter; reason: string | null; n_points: number; baseline_days?: number;
+  excess_variance?: { nxs: number; nxs_err: number; fvar: number; significant: boolean };
+  damped_random_walk?: { tau_d_days: number; sigma_frac: number; tau_d_reliable: boolean; note: string | null } | null;
+  periodicity?: { best_period_d: number | null; periodic: boolean; n_cycles: number | null } | null;
+  caveats: string[]; provenance_id?: string; input_sha256?: string; n_quality_dropped?: number; disclaimer?: string;
+}
+export interface ModelDetail { metadata: Record<string, unknown>; model_card: string | null }
