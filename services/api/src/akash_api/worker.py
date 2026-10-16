@@ -33,10 +33,10 @@ def sanitize(e: BaseException) -> str:
     return "internal error (see server logs)"
 
 
-def execute_job(services: AppServices, job_id: str) -> None:
+def execute_job(services: AppServices, job_id: str, claimed: bool = False) -> None:
     t0 = time.perf_counter()
     try:
-        _execute_job(services, job_id)
+        _execute_job(services, job_id, claimed)
     finally:
         with services.context() as ctx:
             j = JobStore(ctx.conn).get(job_id)
@@ -47,16 +47,19 @@ def execute_job(services: AppServices, job_id: str) -> None:
                                      {"kind": "investigation"})
 
 
-def _execute_job(services: AppServices, job_id: str) -> None:
+def _execute_job(services: AppServices, job_id: str, claimed: bool) -> None:
     with services.context() as ctx:
         jobs = JobStore(ctx.conn)
         job = jobs.get(job_id)
         if job is None or job.terminal:
             return
-        if job.cancel_requested or not jobs.mark_running(job_id):
+        if job.cancel_requested or not (claimed or jobs.mark_running(job_id)):
             jobs.finish(job_id, CANCELLED)
             jobs.append_event(job_id, "job_cancelled", {})
             return
+        if claimed and jobs.attempts(job_id) > 1:
+            # an earlier attempt may have stored part of a result
+            ctx.evidence.discard(UUID(job_id))
         jobs.append_event(job_id, "job_started", {"trace_id": job_id})
 
         def check_cancel() -> None:

@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     api_agent_rate_per_min: int = 20  # model calls cost money
     api_max_body_bytes: int = 1_000_000
     api_max_concurrent_jobs: int = 2
+    # "thread" runs jobs in the API process; "queue" leaves them for worker processes
+    api_executor: str = "thread"
+    worker_lease_s: float = 60.0  # a worker that stops heartbeating loses its job after this long
+    worker_max_attempts: int = 3
+    worker_poll_s: float = 1.0
     api_sse_poll_interval_s: float = 0.25
     api_sse_max_seconds: float = 900.0
     api_cors_origins: str = ""  # comma-separated; empty = no CORS

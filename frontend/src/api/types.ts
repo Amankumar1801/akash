@@ -168,3 +168,18 @@ export interface VariabilityResult {
   caveats: string[]; provenance_id?: string; input_sha256?: string; n_quality_dropped?: number; disclaimer?: string;
 }
 export interface ModelDetail { metadata: Record<string, unknown>; model_card: string | null }
+
+export interface ImageRequest {
+  fits_b64?: string; pixels_b64?: string; width?: number; height?: number; label?: string;
+}
+export interface ImageSource {
+  centroid_xy: [number, number]; n_pixels: number; snr: number; flux: number; r20_px: number; r50_px: number;
+  r80_px: number; concentration: number; asymmetry: number; ellipticity: number; position_angle_deg: number;
+  aperture_radius_px: number;
+}
+export interface ImageResult {
+  input_sha256: string; width: number; height: number; n_masked: number; background: number; noise_rms: number;
+  status: "source_measured" | "no_source_detected"; source: ImageSource | null; caveats: string[]; disclaimer: string;
+  preview: { width: number; height: number; factor: number; pixels_b64: string; vmin: number; vmax: number };
+  label?: string | null; input_kind: "fits" | "pixels"; precomputed?: boolean;
+}
