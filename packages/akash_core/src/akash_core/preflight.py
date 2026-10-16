@@ -82,6 +82,14 @@ def check(s: Settings) -> list[Finding]:
                  "api_max_concurrent_jobs", "api_max_body_bytes"):
         if getattr(s, name) <= 0:
             err("limit_" + name, f"{name} must be positive")
+    if s.api_executor not in ("thread", "queue"):
+        err("executor_invalid", "api_executor must be 'thread' or 'queue'")
+    if s.api_executor == "queue":
+        warn("queue_needs_worker", "api_executor=queue only enqueues jobs; run `python -m "
+             "akash_api.queue_worker` on a host that shares the SQLite file, or nothing will run")
+        if s.worker_lease_s < 10 or s.worker_max_attempts < 1:
+            err("worker_limits",
+                "worker_lease_s must be at least 10 and worker_max_attempts at least 1")
     if s.api_max_concurrent_jobs > 8:
         warn("jobs_high", "more than 8 concurrent in-process jobs will starve the API")
     if prod and os.environ.get("AKASH_DATABASE_URL", "").startswith("postgresql"):

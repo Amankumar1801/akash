@@ -22,6 +22,7 @@ from .routers import (
     agent,
     discoveries,
     experiments,
+    images,
     investigations,
     models,
     objects,
@@ -47,7 +48,9 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if services is not None:
             with services.context() as ctx:  # jobs orphaned by a crash can never finish
-                JobStore(ctx.conn).recover_orphans()
+                # jobs queued for an external worker must survive an API restart
+                if not getattr(services.executor, "external", False):
+                    JobStore(ctx.conn).recover_orphans()
                 ExperimentStore(ctx.conn).recover_orphans()
         yield
         if services is not None:
@@ -106,6 +109,6 @@ def create_app(settings: Settings | None = None, services: AppServices | None = 
 
     for r in (health, objects.router, investigations.router, models.router, agent.router,
               reports.router, experiments.router, review.router, ops.router,
-              discoveries.router, science.router):
+              discoveries.router, science.router, images.router):
         app.include_router(r)
     return app

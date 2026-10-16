@@ -45,6 +45,14 @@ class EvidenceStore:
                      assessment.triage_category.value, datetime.now(UTC).isoformat(),
                      assessment.model_dump_json()))
 
+    def discard(self, investigation_id: UUID) -> None:
+        """Remove what an interrupted attempt stored, so a retry starts clean."""
+        with self._c:
+            self._c.execute("DELETE FROM evidence WHERE investigation_id=?",
+                            (str(investigation_id),))
+            self._c.execute("DELETE FROM investigation WHERE investigation_id=?",
+                            (str(investigation_id),))
+
     def get_assessment(self, investigation_id: UUID) -> Assessment | None:
         row = self._c.execute("SELECT payload FROM investigation WHERE investigation_id=?",
                               (str(investigation_id),)).fetchone()

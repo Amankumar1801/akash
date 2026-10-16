@@ -9,6 +9,7 @@ from ..auth import Principal, Role
 from ..db import StoreContext
 from ..deps import get_ctx, rate_limited, require
 from ..discovery import NOT_A_SCORE, RANKING_TEXT, Filters, apply, build_cards
+from ..nlquery import MAX_TEXT, interpret
 
 router = APIRouter(prefix="/v1")
 READ = [Depends(rate_limited("general", "api_rate_per_min"))]
@@ -40,6 +41,14 @@ def discoveries(
                                                 "caveat": NOT_A_SCORE},
             "disclaimer": "AKASH assists investigation; it does not independently establish "
                           "discoveries."}
+
+
+@router.get("/discoveries/interpret", dependencies=READ)
+def interpret_query(nl: Annotated[str, Query(min_length=1, max_length=MAX_TEXT)],
+                    _: Principal = Depends(require(Role.VIEWER))) -> dict[str, Any]:
+    """Turn a plain-language request into explicit filters, and say what was not understood.
+    The caller then runs the filters through /v1/discoveries, so the search stays inspectable."""
+    return interpret(nl)
 
 
 @router.get("/sky", dependencies=READ)

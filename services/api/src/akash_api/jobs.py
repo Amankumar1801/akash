@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS job (
   job_id TEXT PRIMARY KEY, kind TEXT NOT NULL, owner TEXT NOT NULL, status TEXT NOT NULL,
   created_at REAL NOT NULL, started_at REAL, finished_at REAL, error TEXT,
   idempotency_key TEXT NOT NULL, params TEXT NOT NULL, cancel_requested INTEGER NOT NULL DEFAULT 0,
-  outcome TEXT, category TEXT);
+  outcome TEXT, category TEXT, lease_owner TEXT, lease_until REAL,
+  attempts INTEGER NOT NULL DEFAULT 0);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_job_idem ON job(owner, idempotency_key)
   WHERE status IN ('queued','running','succeeded');
 CREATE INDEX IF NOT EXISTS idx_job_owner ON job(owner, created_at);
@@ -68,6 +69,12 @@ class JobStore:
     def __init__(self, conn: sqlite3.Connection, clock: Callable[[], float] = time.time) -> None:
         self._c, self._clock = conn, clock
         self._c.executescript(_SCHEMA)
+        have = {r[1] for r in self._c.execute("PRAGMA table_info(job)")}
+        for col, ddl in (("lease_owner", "TEXT"), ("lease_until", "REAL"),
+                         ("attempts", "INTEGER NOT NULL DEFAULT 0")):
+            if col not in have:  # a database created before leases existed
+                self._c.execute(f"ALTER TABLE job ADD COLUMN {col} {ddl}")
+        self._c.commit()
 
     def create(self, job_id: str, kind: str, owner: str, params: dict[str, Any],
                idempotency_key: str) -> tuple[Job, bool]:
@@ -151,6 +158,56 @@ class JobStore:
             "ORDER BY seq LIMIT ?", (job_id, after_seq, limit)).fetchall()
         return [{"seq": r[0], "ts": r[1], "kind": r[2], "data": json.loads(r[3])} for r in rows]
 
+    # ---- queue: leases let several worker processes share one database safely ----
+    def claim_next(self, worker_id: str, lease_s: float, kind: str = "investigation"
+                   ) -> tuple[Job, int] | None:
+        """Atomically take the oldest queued job. Returns the job and its attempt number."""
+        now = self._clock()
+        cur = self._c.execute(
+            "UPDATE job SET status='running', started_at=COALESCE(started_at, ?), lease_owner=?, "
+            "lease_until=?, attempts=attempts+1 WHERE job_id=(SELECT job_id FROM job "
+            "WHERE status='queued' AND kind=? ORDER BY created_at, job_id LIMIT 1) "
+            "AND status='queued' RETURNING job_id, attempts", (now, worker_id, now + lease_s, kind))
+        row = cur.fetchone()
+        self._c.commit()
+        if row is None:
+            return None
+        job = self.get(row[0])
+        return (job, int(row[1])) if job is not None else None
+
+    def heartbeat(self, job_id: str, worker_id: str, lease_s: float) -> bool:
+        """Extend the lease. False means the lease was lost and the worker must stop."""
+        cur = self._c.execute("UPDATE job SET lease_until=? WHERE job_id=? AND lease_owner=? "
+                              "AND status='running'", (self._clock() + lease_s, job_id, worker_id))
+        self._c.commit()
+        return cur.rowcount == 1
+
+    def reap_expired(self, max_attempts: int) -> list[tuple[str, str]]:
+        """Jobs whose worker stopped heartbeating: requeue, or fail once attempts run out.
+        Jobs without a lease (run by the in-process executor) are never touched."""
+        now = self._clock()
+        rows = self._c.execute("SELECT job_id, attempts FROM job WHERE status='running' AND "
+                               "lease_until IS NOT NULL AND lease_until < ?", (now,)).fetchall()
+        done: list[tuple[str, str]] = []
+        for jid, attempts in rows:
+            if attempts < max_attempts:
+                cur = self._c.execute(
+                    "UPDATE job SET status='queued', lease_owner=NULL, lease_until=NULL "
+                    "WHERE job_id=? AND status='running' AND lease_until < ?", (jid, now))
+                self._c.commit()
+                if cur.rowcount == 1:
+                    self.append_event(jid, "job_requeued", {"attempt": attempts})
+                    done.append((jid, "requeued"))
+            else:
+                self.finish(jid, FAILED, error="the worker stopped responding")
+                self.append_event(jid, "job_failed", {"error": "the worker stopped responding"})
+                done.append((jid, "failed"))
+        return done
+
+    def attempts(self, job_id: str) -> int:
+        row = self._c.execute("SELECT attempts FROM job WHERE job_id=?", (job_id,)).fetchone()
+        return int(row[0]) if row else 0
+
     def recover_orphans(self) -> int:
         """Jobs left queued/running by a process that died can never finish: fail them visibly.
         Only safe when ONE process owns the database (the multi-instance fix is leases)."""
@@ -165,6 +222,18 @@ class JobStore:
 class JobExecutor(Protocol):
     def submit(self, fn: Callable[[], None]) -> None: ...
     def shutdown(self, wait: bool = True) -> None: ...
+
+
+class QueueExecutor:
+    """Leaves the job in the database as 'queued' for a worker process to claim."""
+
+    external = True
+
+    def submit(self, fn: Callable[[], None]) -> None:
+        return None
+
+    def shutdown(self, wait: bool = True) -> None:
+        return None
 
 
 class InProcessExecutor:

@@ -1,0 +1,606 @@
+[
+ {
+  "text": "show me new strong signals not in a catalog with anomaly above 95",
+  "expect": {
+   "filters": {
+    "exclude_known": true,
+    "min_anomaly_percentile": 95.0,
+    "min_snr": 15.0,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "new_signal_review"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "not in a catalog",
+     "effect": "hide objects already in a catalog"
+    },
+    {
+     "phrase": "new",
+     "effect": "category: unlisted signal, worth a look"
+    },
+    {
+     "phrase": "anomaly above 95",
+     "effect": "anomaly percentile at least 95"
+    },
+    {
+     "phrase": "strong signals",
+     "effect": "signal-to-noise at least 15 (a strong signal)"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "unreviewed TIC 900000001 most recent",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "unreviewed",
+    "q": "TIC 900000001",
+    "sort": "recent",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "unreviewed",
+     "effect": "review state: not reviewed by you"
+    },
+    {
+     "phrase": "most recent",
+     "effect": "sort by most recent"
+    },
+    {
+     "phrase": "tic 900000001",
+     "effect": "name contains TIC 900000001"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "weak signals that are anomalous and flasky",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": 90.0,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "anomalous",
+     "effect": "anomaly percentile at least 90"
+    }
+   ],
+   "unsupported": [
+    {
+     "phrase": "weak signals",
+     "why": "there is no filter for weak signals; sort by signal-to-noise instead"
+    }
+   ],
+   "not_understood": [
+    "flasky"
+   ],
+   "notes": []
+  }
+ },
+ {
+  "text": "known candidates snr over 10",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": 10.0,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "known_candidate"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "known candidates",
+     "effect": "category: already a catalogued candidate"
+    },
+    {
+     "phrase": "snr over 10",
+     "effect": "signal-to-noise at least 10"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "systematic artifacts, models disagree",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "likely_systematic",
+     "models_disagree"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "models disagree",
+     "effect": "category: models disagree"
+    },
+    {
+     "phrase": "systematic",
+     "effect": "category: probably instrumental or stellar"
+    },
+    {
+     "phrase": "artifacts",
+     "effect": "category: probably instrumental or stellar"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "top 95th percentile",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": 95.0,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "95th percentile",
+     "effect": "anomaly percentile at least 95"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [
+    "top"
+   ],
+   "notes": []
+  }
+ },
+ {
+  "text": "anomaly 150",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": 100.0,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "anomaly 150",
+     "effect": "anomaly percentile at least 150"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": [
+    "anomaly 150: percentiles stop at 100, so 100 was used"
+   ]
+  }
+ },
+ {
+  "text": "not reviewed by me",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "unreviewed",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "not reviewed by me",
+     "effect": "review state: not reviewed by you"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "already reviewed",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "reviewed",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "already reviewed",
+     "effect": "review state: reviewed by you"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "known false positives",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "known_candidate",
+     "known_confirmed",
+     "known_false_positive"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "false positives",
+     "effect": "category: catalogued as a false positive"
+    },
+    {
+     "phrase": "known",
+     "effect": "category: any already-known object"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "confirmed planets",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "known_confirmed"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "confirmed planets",
+     "effect": "category: already a confirmed planet"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "insufficient data",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "insufficient_data"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "insufficient data",
+     "effect": "category: not enough data"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "strongest first",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "snr",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "strongest",
+     "effect": "sort by signal-to-noise"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [
+    "first"
+   ],
+   "notes": []
+  }
+ },
+ {
+  "text": "most anomalous",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "anomaly",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "most anomalous",
+     "effect": "sort by anomaly percentile"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "signal-to-noise at least 20 and anomaly percentile 80",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": 80.0,
+    "min_snr": 20.0,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "anomaly percentile 80",
+     "effect": "anomaly percentile at least 80"
+    },
+    {
+     "phrase": "signal-to-noise at least 20",
+     "effect": "signal-to-noise at least 20"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "snr > 8.5",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": 8.5,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "snr > 8.5",
+     "effect": "signal-to-noise at least 8.5"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "KIC 8462852",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": "KIC 8462852",
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "kic 8462852",
+     "effect": "name contains KIC 8462852"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "hide known, moderate or stronger",
+  "expect": {
+   "filters": {
+    "exclude_known": true,
+    "min_anomaly_percentile": null,
+    "min_snr": 7.0,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [
+    {
+     "phrase": "hide known",
+     "effect": "hide objects already in a catalog"
+    },
+    {
+     "phrase": "moderate or stronger",
+     "effect": "signal-to-noise at least 7 (moderate or stronger)"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "banana",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [],
+   "unsupported": [],
+   "not_understood": [
+    "banana"
+   ],
+   "notes": []
+  }
+ },
+ {
+  "text": "",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "   ",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": []
+   },
+   "understood": [],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "NEW NEW new",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "triage",
+    "category": [
+     "new_signal_review"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "new",
+     "effect": "category: unlisted signal, worth a look"
+    },
+    {
+     "phrase": "new",
+     "effect": "category: unlisted signal, worth a look"
+    },
+    {
+     "phrase": "new",
+     "effect": "category: unlisted signal, worth a look"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ },
+ {
+  "text": "worth a human look, latest",
+  "expect": {
+   "filters": {
+    "exclude_known": false,
+    "min_anomaly_percentile": null,
+    "min_snr": null,
+    "reviewed": "any",
+    "q": null,
+    "sort": "recent",
+    "category": [
+     "new_signal_review"
+    ]
+   },
+   "understood": [
+    {
+     "phrase": "worth a human look",
+     "effect": "category: unlisted signal, worth a look"
+    },
+    {
+     "phrase": "latest",
+     "effect": "sort by most recent"
+    }
+   ],
+   "unsupported": [],
+   "not_understood": [],
+   "notes": []
+  }
+ }
+]

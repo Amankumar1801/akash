@@ -1,7 +1,8 @@
+import type { Interpretation } from "../lib/nlquery";
 import type {
   AskAnswer, DiscoveryPage, FeedQuery, SkyOut, Experiment, ExperimentConfig, LabelRow, ReportFile, ReviewLabel,
   EvidenceRow, InvestigationDetail, InvestigationRequest, Job, JobEvent, LightCurveData, Me,
-  ModelOut, ModelDetail, ObjectOut, ObservationOut, ProvGraph, SpectrumRequest, SpectrumResult, VariabilityResult,
+  ImageRequest, ImageResult, ModelOut, ModelDetail, ObjectOut, ObservationOut, ProvGraph, SpectrumRequest, SpectrumResult, VariabilityResult,
 } from "./types";
 
 export class ApiError extends Error {
@@ -28,6 +29,7 @@ export interface AkashApi {
   models(): Promise<ModelOut[]>;
   modelDetail(name: string, version: string): Promise<ModelDetail>;
   analyzeSpectrum(req: SpectrumRequest): Promise<SpectrumResult>;
+  analyzeImage(req: ImageRequest): Promise<ImageResult>;
   variability(obsId: string): Promise<VariabilityResult>;
   ask(id: string, question: string): Promise<AskAnswer>;
   createExperiment(c: ExperimentConfig): Promise<Experiment>;
@@ -36,6 +38,7 @@ export interface AkashApi {
   addLabel(id: string, label: ReviewLabel, note?: string): Promise<LabelRow>;
   listLabels(id: string): Promise<LabelRow[]>;
   discoveries(q: FeedQuery): Promise<DiscoveryPage>;
+  interpretQuery(nl: string): Promise<Interpretation>;
   sky(): Promise<SkyOut>;
   report(id: string, format: "markdown" | "html"): Promise<ReportFile>;
   /** Ordered events after `after`; ends when the job reaches a terminal state. */
@@ -79,9 +82,12 @@ export class HttpApi implements AkashApi {
   cancelInvestigation = (id: string) => this.req<Job>("DELETE", `/v1/investigations/${id}`);
   evidence = (id: string) => this.req<EvidenceRow[]>("GET", `/v1/investigations/${id}/evidence`);
   provenance = (id: string) => this.req<ProvGraph>("GET", `/v1/investigations/${id}/provenance`);
+  interpretQuery = (nl: string) =>
+    this.req<Interpretation>("GET", `/v1/discoveries/interpret?nl=${encodeURIComponent(nl)}`);
   models = () => this.req<ModelOut[]>("GET", "/v1/models");
   modelDetail = (name: string, version: string) =>
     this.req<ModelDetail>("GET", `/v1/models/${encodeURIComponent(name)}/${encodeURIComponent(version)}`);
+  analyzeImage = (req: ImageRequest) => this.req<ImageResult>("POST", "/v1/images/analyze", req);
   analyzeSpectrum = (req: SpectrumRequest) => this.req<SpectrumResult>("POST", "/v1/spectra/analyze", req);
   variability = (obsId: string) => this.req<VariabilityResult>("GET", `/v1/observations/${obsId}/variability`);
   createExperiment = (c: ExperimentConfig) => this.req<Experiment>("POST", "/v1/experiments", c);

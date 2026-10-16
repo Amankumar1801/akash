@@ -30,7 +30,7 @@ from akash_science.lightcurve.pipeline import LightCurvePipeline
 
 from .auth import ApiKeyStore
 from .db import StoreContext, make_store_context
-from .jobs import InProcessExecutor, JobExecutor, JobStore
+from .jobs import InProcessExecutor, JobExecutor, JobStore, QueueExecutor
 from .metrics import Metrics
 from .ratelimit import RateLimiter
 from .research import ExperimentStore, LabelStore
@@ -164,7 +164,9 @@ def build_default_services(settings: Settings) -> AppServices:
         settings=settings, db_path=settings.sqlite_path,
         artifacts_dir=str(Path(settings.data_dir) / "objects"),
         make_resolver=lambda ctx: dl(ctx).resolver, make_lightcurve_source=source,
-        make_investigation_deps=deps, executor=InProcessExecutor(settings.api_max_concurrent_jobs),
+        make_investigation_deps=deps,
+        executor=(QueueExecutor() if settings.api_executor == "queue"
+                  else InProcessExecutor(settings.api_max_concurrent_jobs)),
         version_tag=tag, registry_root=Path(settings.registry_root),
         make_llm_provider=lambda: (
             OpenAICompatProvider(settings.llm_base_url, settings.llm_api_key, settings.llm_model)

@@ -10,6 +10,7 @@ services:
     env_file: [../../.env]
     environment:
       AKASH_ENV: prod
+      AKASH_API_EXECUTOR: queue
     volumes:
       - akash-data:/data
       - ${AKASH_MODELS_DIR:-../../models}:/models:ro
@@ -18,6 +19,24 @@ services:
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
     expose: ["8000"]
+    deploy: { resources: { limits: { memory: 2g } } }
+  worker:
+    build: { context: ../.., dockerfile: infra/docker/api.Dockerfile }
+    restart: unless-stopped
+    command: ["python", "-m", "akash_api.queue_worker"]
+    healthcheck: { disable: true }   # the image healthcheck probes the API port, which a worker lacks
+    depends_on: { api: { condition: service_healthy } }
+    env_file: [../../.env]
+    environment:
+      AKASH_ENV: prod
+      AKASH_API_EXECUTOR: queue
+    volumes:
+      - akash-data:/data
+      - ${AKASH_MODELS_DIR:-../../models}:/models:ro
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     deploy: { resources: { limits: { memory: 2g } } }
   web:
     build:

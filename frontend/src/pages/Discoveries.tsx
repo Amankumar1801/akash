@@ -4,6 +4,7 @@ import { useApi } from "../api/settings";
 import type { DiscoveryCard, DiscoveryPage, FeedQuery, FeedSort, TriageCategory } from "../api/types";
 import { DiscoveryCardView } from "../components/DiscoveryCardView";
 import { toCsv } from "../lib/csv";
+import { toFeedQuery, type Interpretation } from "../lib/nlquery";
 import { TRIAGE } from "../lib/labels";
 
 const SORTS: { v: FeedSort; t: string }[] = [
@@ -27,6 +28,17 @@ export function Discoveries() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
+  const [ask, setAsk] = useState("");
+  const [interp, setInterp] = useState<Interpretation | null>(null);
+
+  async function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ask.trim()) return;
+    try {
+      const i = await api.interpretQuery(ask.trim());
+      setInterp(i); setQ(toFeedQuery(i, { sort: "triage", reviewed: "any" })); setPage(0); setErr(null);
+    } catch (x) { setErr(explain(x)); }
+  }
 
   const load = useCallback(() => {
     let live = true;
@@ -69,6 +81,23 @@ export function Discoveries() {
         Finished investigations, ordered for human review. The order is a fixed, stated rule. It is not a score and it is not a
         likelihood that anything is real.
       </p>
+
+      <form className="nl-search" onSubmit={(e) => void search(e)} role="search">
+        <label>Describe what you want to see
+          <input value={ask} maxLength={200} onChange={(e) => setAsk(e.target.value)}
+                 placeholder="new strong signals not in a catalog, anomaly above 95, not reviewed" /></label>
+        <button className="btn primary" type="submit">Search</button>
+      </form>
+      {interp && (
+        <div className="nl-interp" aria-live="polite">
+          <p className="muted">Read as:</p>
+          <ul>{interp.understood.map((u, i) => <li key={i}><q>{u.phrase}</q> {"\u2192"} {u.effect}</li>)}</ul>
+          {interp.understood.length === 0 && <p className="muted">Nothing in that request matched a filter, so the whole queue is shown.</p>}
+          {interp.not_understood.length > 0 && <p className="notice">Not understood, so ignored: {interp.not_understood.join(", ")}.</p>}
+          {interp.unsupported.map((u) => <p key={u.phrase} className="notice">{`"${u.phrase}": ${u.why}.`}</p>)}
+          {interp.notes.map((n) => <p key={n} className="muted">{n}</p>)}
+          <p className="muted">This reads fixed phrases; it does not use a language model. The filters below are what ran, and you can change them.</p>
+        </div>)}
 
       <div className="feed-filters" role="group" aria-label="Filters">
         <label>Sort

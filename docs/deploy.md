@@ -54,6 +54,14 @@ environment, never logged, and never included in errors. Use a provider key with
 - A PaaS that runs a container with a persistent volume works (the volume is required: SQLite and artifacts live there).
 - Platforms with ephemeral disks, or that run several instances, do **not** fit yet.
 
+## Worker process (queue executor)
+Set `AKASH_API_EXECUTOR=queue` on the API and run one or more `worker` containers
+(`python -m akash_api.queue_worker`). They claim jobs with a lease (`AKASH_WORKER_LEASE_S`, default 60),
+heartbeat while running, and a crashed worker's job is requeued up to `AKASH_WORKER_MAX_ATTEMPTS` times.
+All processes must mount the **same** data volume: this is SQLite on one node, not a distributed
+queue. Preflight warns if the queue is selected; make sure a worker is actually running, otherwise
+jobs stay queued forever.
+
 ## Scaling out (not built)
 Before running more than one API instance, replace: in-process executors with a queue and workers (Celery/Redis
 or similar), SQLite with Postgres, local artifacts with object storage, and in-process metrics and rate limits

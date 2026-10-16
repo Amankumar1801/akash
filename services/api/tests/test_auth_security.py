@@ -21,7 +21,8 @@ PROTECTED = [("GET", "/v1/me"), ("POST", "/v1/objects/search"), ("GET", f"/v1/ob
              ("GET", f"/v1/investigations/{'0' * 8}-0000-0000-0000-{'0' * 12}/evidence"),
              ("GET", f"/v1/investigations/{'0' * 8}-0000-0000-0000-{'0' * 12}/provenance"),
              ("GET", "/v1/models"), ("GET", "/v1/models/a/b"),
-             ("POST", "/v1/spectra/analyze"),
+             ("POST", "/v1/spectra/analyze"), ("POST", "/v1/images/analyze"),
+             ("GET", "/v1/discoveries/interpret?nl=x"),
              ("GET", f"/v1/observations/{'0' * 8}-0000-0000-0000-{'0' * 12}/variability")]
 
 

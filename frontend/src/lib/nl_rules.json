@@ -1,0 +1,247 @@
+{
+ "max_text": 200,
+ "stop": [
+  "a",
+  "about",
+  "all",
+  "an",
+  "and",
+  "any",
+  "are",
+  "as",
+  "at",
+  "be",
+  "been",
+  "by",
+  "candidate",
+  "candidates",
+  "find",
+  "for",
+  "from",
+  "get",
+  "give",
+  "had",
+  "has",
+  "have",
+  "i",
+  "in",
+  "investigation",
+  "investigations",
+  "is",
+  "it",
+  "its",
+  "list",
+  "me",
+  "my",
+  "object",
+  "objects",
+  "of",
+  "on",
+  "one",
+  "ones",
+  "only",
+  "or",
+  "please",
+  "result",
+  "results",
+  "show",
+  "signal",
+  "signals",
+  "star",
+  "stars",
+  "target",
+  "targets",
+  "than",
+  "that",
+  "the",
+  "these",
+  "those",
+  "to",
+  "was",
+  "what",
+  "where",
+  "which",
+  "who",
+  "whose",
+  "with"
+ ],
+ "rules": [
+  {
+   "pattern": "\\bnot (?:yet )?(?:reviewed|looked at)(?: by me)?\\b|\\bunreviewed\\b|\\b(?:haven't|havent|have not) (?:reviewed|looked at)\\b|\\bto review\\b",
+   "action": {
+    "set": "reviewed",
+    "value": "unreviewed"
+   },
+   "says": "review state: not reviewed by you"
+  },
+  {
+   "pattern": "\\b(?:already )?reviewed(?: by me)?\\b",
+   "action": {
+    "set": "reviewed",
+    "value": "reviewed"
+   },
+   "says": "review state: reviewed by you"
+  },
+  {
+   "pattern": "\\bnot (?:in|listed in|found in) (?:any |a |the )?catalou?gs?\\b|\\buncatalou?ged\\b|\\bnot (?:already )?known\\b|\\bhide known\\b|\\bexclude known\\b",
+   "action": {
+    "flag": "exclude_known"
+   },
+   "says": "hide objects already in a catalog"
+  },
+  {
+   "pattern": "\\b(?:known|catalogued|cataloged) candidates?\\b",
+   "action": {
+    "category": [
+     "known_candidate"
+    ]
+   },
+   "says": "category: already a catalogued candidate"
+  },
+  {
+   "pattern": "\\bfalse positives?\\b",
+   "action": {
+    "category": [
+     "known_false_positive"
+    ]
+   },
+   "says": "category: catalogued as a false positive"
+  },
+  {
+   "pattern": "\\bconfirmed(?: planets?)?\\b",
+   "action": {
+    "category": [
+     "known_confirmed"
+    ]
+   },
+   "says": "category: already a confirmed planet"
+  },
+  {
+   "pattern": "\\bnew(?: signals?| candidates?| ones| objects?)?\\b|\\bunlisted\\b|\\bworth (?:a )?(?:human )?look\\b|\\bnew_signal_review\\b",
+   "action": {
+    "category": [
+     "new_signal_review"
+    ]
+   },
+   "says": "category: unlisted signal, worth a look"
+  },
+  {
+   "pattern": "\\bknown\\b",
+   "action": {
+    "category": [
+     "known_confirmed",
+     "known_candidate",
+     "known_false_positive"
+    ]
+   },
+   "says": "category: any already-known object"
+  },
+  {
+   "pattern": "\\b(?:models? )?disagree\\w*\\b|\\bconflicting models\\b",
+   "action": {
+    "category": [
+     "models_disagree"
+    ]
+   },
+   "says": "category: models disagree"
+  },
+  {
+   "pattern": "\\binsufficient data\\b|\\bnot enough data\\b|\\bpoor data\\b",
+   "action": {
+    "category": [
+     "insufficient_data"
+    ]
+   },
+   "says": "category: not enough data"
+  },
+  {
+   "pattern": "\\bsystematics?\\b|\\binstrumental\\b|\\bartifacts?\\b|\\bartefacts?\\b",
+   "action": {
+    "category": [
+     "likely_systematic"
+    ]
+   },
+   "says": "category: probably instrumental or stellar"
+  },
+  {
+   "pattern": "\\banomal\\w*(?: percentile)?\\s*(?:>=|>|above|over|at least|greater than|exceeding|exceeds|more than)?\\s*(\\d+(?:\\.\\d+)?)",
+   "action": {
+    "min_anomaly_capture": 1
+   },
+   "says": "anomaly percentile at least {1}"
+  },
+  {
+   "pattern": "(?:>=|>|above|over|at least|greater than|exceeding|exceeds|more than)?\\s*(\\d+(?:\\.\\d+)?)(?:st|nd|rd|th)? percentile\\b",
+   "action": {
+    "min_anomaly_capture": 1
+   },
+   "says": "anomaly percentile at least {1}"
+  },
+  {
+   "pattern": "\\bmost anomalous\\b|\\b(?:sort(?:ed)? )?by anomaly\\b",
+   "action": {
+    "set": "sort",
+    "value": "anomaly"
+   },
+   "says": "sort by anomaly percentile"
+  },
+  {
+   "pattern": "\\bhigh(?:ly)? anomal\\w*\\b|\\bvery anomalous\\b|\\banomalous\\b|\\bunusual\\b",
+   "action": {
+    "min_anomaly": 90
+   },
+   "says": "anomaly percentile at least 90"
+  },
+  {
+   "pattern": "\\b(?:snr|s/n|signal[- ]to[- ]noise)\\s*(?:>=|>|above|over|at least|greater than|exceeding|exceeds|more than)?\\s*(\\d+(?:\\.\\d+)?)",
+   "action": {
+    "min_snr_capture": 1
+   },
+   "says": "signal-to-noise at least {1}"
+  },
+  {
+   "pattern": "\\bstrongest\\b|\\bby (?:snr|signal strength)\\b",
+   "action": {
+    "set": "sort",
+    "value": "snr"
+   },
+   "says": "sort by signal-to-noise"
+  },
+  {
+   "pattern": "\\bstrong signals?\\b|\\bhigh snr\\b|\\bstrong\\b",
+   "action": {
+    "min_snr": 15
+   },
+   "says": "signal-to-noise at least 15 (a strong signal)"
+  },
+  {
+   "pattern": "\\bmoderate(?: or stronger)?(?: signals?)?\\b",
+   "action": {
+    "min_snr": 7
+   },
+   "says": "signal-to-noise at least 7 (moderate or stronger)"
+  },
+  {
+   "pattern": "\\bweak(?:est)?(?: signals?)?\\b",
+   "action": {
+    "unsupported": "there is no filter for weak signals; sort by signal-to-noise instead"
+   },
+   "says": "not supported"
+  },
+  {
+   "pattern": "\\bmost recent\\b|\\blatest\\b|\\bnewest\\b|\\brecently\\b|\\bby (?:date|recency)\\b",
+   "action": {
+    "set": "sort",
+    "value": "recent"
+   },
+   "says": "sort by most recent"
+  },
+  {
+   "pattern": "\\b(tic|kic|epic|toi|koi)[ -]?(\\d+)\\b",
+   "action": {
+    "query": "{1} {2}"
+   },
+   "says": "name contains {1} {2}"
+  }
+ ]
+}
