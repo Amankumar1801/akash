@@ -6,6 +6,7 @@ import type { SkyOut, SkyPoint } from "../api/types";
 import { TRIAGE } from "../lib/labels";
 import { nearest, project, toPixel, X_MAX, Y_MAX } from "../lib/sky";
 import { cssVar, useThemeTick } from "../lib/useTheme";
+import { PageHead } from "../components/PageHead";
 
 const TONE_VAR = { supports: "--supports", contradicts: "--rose", inconclusive: "--ink-2", neutral: "--ink-3" } as const;
 const color = (cat: SkyPoint["category"]) => cssVar(TONE_VAR[TRIAGE[cat].tone]) || cssVar("--lamp");
@@ -72,11 +73,10 @@ export function SkyMap() {
 
   return (
     <section className="section">
-      <h2>Sky map</h2>
-      <p className="prose" style={{ marginTop: 6 }}>
+      <PageHead eyebrow="Sky" title="Explore the sky" accent="of your investigations.">
         Where the objects you have investigated sit on the sky (Hammer-Aitoff projection, right ascension increasing to the left).
         {" "}{sky?.note}
-      </p>
+      </PageHead>
       {err && <p className="notice bad" role="alert" style={{ marginTop: 14 }}>{err}</p>}
       <div className="sky-wrap">
         <canvas ref={ref} className="sky-map" role="img" aria-label={`All-sky map with ${pts.length} investigated objects. A list of the same objects follows.`}

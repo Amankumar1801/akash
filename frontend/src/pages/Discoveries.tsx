@@ -6,6 +6,7 @@ import { DiscoveryCardView } from "../components/DiscoveryCardView";
 import { toCsv } from "../lib/csv";
 import { toFeedQuery, type Interpretation } from "../lib/nlquery";
 import { TRIAGE } from "../lib/labels";
+import { PageHead } from "../components/PageHead";
 
 const SORTS: { v: FeedSort; t: string }[] = [
   { v: "triage", t: "Review order" }, { v: "anomaly", t: "Anomaly percentile" },
@@ -76,11 +77,10 @@ export function Discoveries() {
   const cmp = data?.items.filter((c) => picked.includes(c.investigation_id)) ?? [];
   return (
     <section className="section">
-      <h2>Candidate queue</h2>
-      <p className="prose" style={{ marginTop: 6 }}>
+      <PageHead eyebrow="Candidates" title="Signals worth" accent="a closer look.">
         Finished investigations, ordered for human review. The order is a fixed, stated rule. It is not a score and it is not a
         likelihood that anything is real.
-      </p>
+      </PageHead>
 
       <form className="nl-search" onSubmit={(e) => void search(e)} role="search">
         <label>Describe what you want to see

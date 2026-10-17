@@ -32,11 +32,3 @@ export function VetGlyph({ s }: { s: VetStatus }) {
     </svg>
   );
 }
-
-export function Mark() {
-  return (
-    <svg viewBox="0 0 30 18" aria-hidden="true">
-      <path d="M1 6h8l2.4 9.4L15 6h14" fill="none" stroke="var(--lamp)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}

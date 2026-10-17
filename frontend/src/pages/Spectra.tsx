@@ -5,6 +5,7 @@ import sample from "../api/spectrum_sample.json";
 import type { SpectrumResult } from "../api/types";
 import { parseSpectrumCsv } from "../lib/spectrumCsv";
 import { cssVar, useThemeTick } from "../lib/useTheme";
+import { PageHead } from "../components/PageHead";
 
 const STATUS: Record<SpectrumResult["redshift"]["status"], string> = {
   no_lines: "No lines strong enough to test",
@@ -107,12 +108,11 @@ export function Spectra() {
   const z = res?.redshift;
   return (
     <section className="section">
-      <h2>Spectrum viewer</h2>
-      <p className="prose" style={{ marginTop: 6 }}>
+      <PageHead eyebrow="Spectra" title="See the light" accent="in more detail.">
         Paste or upload a one-dimensional spectrum. AKASH finds emission and absorption lines and checks whether one redshift makes
         several of them match known lines. A redshift here is a candidate with its supporting lines, never a confirmed value,
         and nothing here classifies the object.
-      </p>
+      </PageHead>
       <div className="spec-input">
         <label>Spectrum, one row per pixel: wavelength (Angstrom), flux, optional error
           <textarea value={text} rows={6} spellCheck={false} placeholder={"4000, 10.1\n4004, 10.0\n..."}
