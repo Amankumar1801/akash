@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { Experiment, ExperimentConfig, RecoveryBin, Rate } from "../api/types";
+import { PageHead } from "../components/PageHead";
 
 const DEFAULTS: ExperimentConfig = {
   n_trials: 20, n_controls: 6, seed: 0, period_min_d: 1, period_max_d: 10,
@@ -82,12 +83,11 @@ export function Lab() {
 
   return (
     <section className="section">
-      <h2>Experiment lab</h2>
-      <p className="prose" style={{ marginTop: 6 }}>
+      <PageHead eyebrow="Lab" title="Run your own" accent="experiments.">
         Plant transits of known size in noisy light curves, run the real pipeline, and count how many it finds.
         This measures how sensitive the pipeline is, and how often it raises an alarm when nothing is there.
         The noise is synthetic, so the results describe the pipeline on that noise, not real-survey sensitivity.
-      </p>
+      </PageHead>
       {api.kind === "demo" && <p className="notice" style={{ marginTop: 16 }}>The lab needs the live API: it runs the real pipeline, and demo data has none to test. Switch off demo data in Settings.</p>}
       <form className="lab-form" onSubmit={(e) => void run(e)}>
         <label>Planted transits{num("n_trials")}</label><label>Empty controls{num("n_controls")}</label>

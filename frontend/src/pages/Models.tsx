@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { ModelDetail, ModelOut } from "../api/types";
+import { PageHead } from "../components/PageHead";
 
 const key = (m: ModelOut) => `${m.name}/${m.version}`;
 const show = (v: unknown): string => (v !== null && typeof v === "object" ? JSON.stringify(v, null, 2) : String(v));
@@ -31,11 +32,10 @@ export function Models() {
 
   return (
     <section className="section">
-      <h2>Model observatory</h2>
-      <p className="prose" style={{ marginTop: 6 }}>
+      <PageHead eyebrow="Models" title="What the" accent="models say.">
         Every prediction records the model version, the data it learned from and the feature version, so a result can be reproduced.
         Versions are immutable once saved. Select a row to read its recorded metadata and model card.
-      </p>
+      </PageHead>
       {err && <p className="notice bad" style={{ marginTop: 16 }}>{err}</p>}
       {!rows && !err && <div className="skel" style={{ height: 100, marginTop: 16 }} />}
       {rows && rows.length === 0 && <p className="empty">No models are saved in the registry yet. Train one with scripts/train_transit.py and it will appear here.</p>}

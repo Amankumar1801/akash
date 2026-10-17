@@ -4,6 +4,7 @@ import { useApi } from "../api/settings";
 import imageSample from "../api/image_sample.json";
 import type { ImageRequest, ImageResult } from "../api/types";
 import { b64ToFloat32, fitsPayload, float32ToB64, luminance, toRgba, type Stretch } from "../lib/image";
+import { PageHead } from "../components/PageHead";
 
 const MAX_DECODED_SIDE = 256;
 const FACTS: [keyof NonNullable<ImageResult["source"]>, string, string, (v: number) => string][] = [
@@ -81,11 +82,10 @@ export function ImageViewer() {
   const flip = res?.input_kind === "fits";
   return (
     <section className="section">
-      <h2>Image viewer</h2>
-      <p className="prose" style={{ marginTop: 6 }}>
+      <PageHead eyebrow="Images" title="Look at the" accent="evidence directly.">
         Open a single-band image of a galaxy or other extended object (a FITS cutout, or a PNG or JPEG). AKASH measures how the light
         is distributed. It does not say what kind of object it is.
-      </p>
+      </PageHead>
       <div className="spec-actions" style={{ marginTop: 14 }}>
         <label className="btn">Open an image
           <input type="file" accept=".fits,.fit,.fts,image/png,image/jpeg" hidden onChange={(e) => void onFile(e.target.files?.[0])} /></label>
