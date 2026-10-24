@@ -162,3 +162,66 @@ def test_mast_error_status_raises():
 
     with pytest.raises(ProviderError):
         MastLightCurveProvider(client_for(h), TESS_SPOC).list_observations(obj(), ObsFilter())
+
+
+def test_gaia_drops_a_column_the_archive_rejects_and_still_returns_the_rest():
+    seen: list[str] = []
+
+    def h(req):
+        q = form(req)["QUERY"]
+        seen.append(q)
+        if "ruwe" in q:  # the archive does not know this column
+            return httpx.Response(400, text='<INFO name="QUERY_STATUS">ERROR: unknown column ruwe</INFO>')
+        cols = [c.strip() for c in q.split("FROM")[0].replace("SELECT TOP 1", "").replace("SELECT", "").split(",")]
+        return json_resp(tap_json(cols, [[7] + [1.0] * (len(cols) - 1)]))
+
+    g = GaiaProvider(client_for(h))
+    obj = AstronomicalObject(ra_deg=1.0, dec_deg=2.0, canonical_name="s", anchor_namespace="GAIA_DR3",
+                             aliases=[ObjectAlias(namespace="GAIA_DR3", identifier="7", source="t")])
+    rec = g.lookup(obj)[0]
+    assert g.dropped == ["ruwe"] and "ruwe" not in rec.values and rec.values["teff_gspphot"] == 1.0
+    assert "ruwe" not in g.last_query
+    n = len(seen)
+    g.lookup(obj)
+    assert len(seen) == n + 2  # main + radius query only: the column set is remembered
+
+
+def test_client_error_carries_the_servers_explanation():
+    c = client_for(lambda req: httpx.Response(400, text="ERROR:   Column 'foo'\n not found"))
+    with pytest.raises(ProviderError, match="Column 'foo' not found"):
+        c.get("http://x")
+
+
+def _gaia_obj():
+    return AstronomicalObject(ra_deg=1.0, dec_deg=2.0, canonical_name="s", anchor_namespace="GAIA_DR3",
+                              aliases=[ObjectAlias(namespace="GAIA_DR3", identifier="7", source="t")])
+
+
+def test_gaia_radius_comes_from_the_astrophysical_parameters_table():
+    seen: list[str] = []
+
+    def h(req):
+        q = form(req)["QUERY"]
+        seen.append(q)
+        if "astrophysical_parameters" in q:
+            return json_resp(tap_json(["radius_gspphot", "radius_flame"], [[None, 1.12]]))
+        if "radius" in q.split("FROM")[0]:  # gaia_source has no radius column
+            return httpx.Response(400, text="unknown column radius")
+        return json_resp(tap_json(["source_id", "ra", "dec", "teff_gspphot"], [[7, 1.0, 2.0, 5855.0]]))
+
+    g = GaiaProvider(client_for(h))
+    rec = g.lookup(_gaia_obj())[0]
+    assert rec.values["radius_flame"] == 1.12 and rec.values["teff_gspphot"] == 5855.0
+    assert not g.dropped and "astrophysical_parameters" in rec.query
+
+
+def test_gaia_radius_failure_keeps_the_rest_of_the_record():
+    def h(req):
+        if "astrophysical_parameters" in form(req)["QUERY"]:
+            return httpx.Response(400, text="nope")
+        return json_resp(tap_json(["source_id", "ra", "dec"], [[7, 1.0, 2.0]]))
+
+    g = GaiaProvider(client_for(h))
+    rec = g.lookup(_gaia_obj())[0]
+    assert rec.values["source_id"] == 7 and "radius_flame" not in rec.values
+    assert g.dropped == ["gaiadr3.astrophysical_parameters"]

@@ -68,6 +68,16 @@ class CircuitBreaker:
             self._opened_at = self.clock()
 
 
+def _detail(resp: httpx.Response) -> str:
+    """The server's own explanation of a client error (TAP services say which column or syntax
+    they rejected), collapsed to one short line."""
+    try:
+        text = " ".join(resp.text.split())
+    except Exception:  # noqa: BLE001  (an unreadable body must never hide the status code)
+        return ""
+    return f": {text[:300]}" if text else ""
+
+
 class ResilientClient:
     def __init__(
         self,
@@ -105,7 +115,8 @@ class ResilientClient:
                         continue
                 elif resp.status_code >= 400:
                     # client error: our fault, not provider ill-health; don't retry/trip breaker
-                    raise ProviderError(f"{self.name}: HTTP {resp.status_code} for {url}")
+                    raise ProviderError(
+                        f"{self.name}: HTTP {resp.status_code} for {url}{_detail(resp)}")
                 else:
                     self.breaker.record_success()
                     self.last_error = None
