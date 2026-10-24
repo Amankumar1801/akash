@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
+import { useBusyCount } from "../lib/activity";
 import { Logo } from "./Logo";
 import { SpaceBackground } from "./SpaceBackground";
 
@@ -29,7 +30,12 @@ function useRedLamp(): [boolean, () => void] {
     document.documentElement.dataset.theme = red ? "red" : "night";
     try { localStorage.setItem("akash.theme", red ? "red" : "night"); } catch { /* ignore */ }
   }, [red]);
-  return [red, () => setRed((r) => !r)];
+  const toggle = () => {
+    const el = document.documentElement;   // a short colour cross-fade for the theme switch
+    el.classList.add("theme-fade"); window.setTimeout(() => el.classList.remove("theme-fade"), 450);
+    setRed((r) => !r);
+  };
+  return [red, toggle];
 }
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -52,15 +58,36 @@ export function Shell({ children }: { children: ReactNode }) {
   };
 
   const { pathname } = useLocation();
+  const busyCount = useBusyCount();
+  const navRef = useRef<HTMLElement>(null);
+  const [ready, setReady] = useState(false);
+  // One indicator element glides to the active link (vertical in the sidebar, horizontal in the
+  // mobile rail). Positions are measured, never assumed, so back/forward, direct loads and resizes agree.
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const place = () => {
+      const a = nav.querySelector<HTMLElement>('a[aria-current="page"]');
+      if (!a) { nav.style.setProperty("--ih", "0px"); return; }
+      nav.style.setProperty("--ix", `${a.offsetLeft}px`); nav.style.setProperty("--iy", `${a.offsetTop}px`);
+      nav.style.setProperty("--iw", `${a.offsetWidth}px`); nav.style.setProperty("--ih", `${a.offsetHeight}px`);
+    };
+    place();
+    const raf = requestAnimationFrame(() => setReady(true));  // no glide on the very first paint
+    const ro = new ResizeObserver(place); ro.observe(nav);
+    void document.fonts?.ready.then(place);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
+  }, [pathname]);
   return (
     <>
       <SpaceBackground />
       <div className="app">
         <aside className="side">
-          <NavLink to="/" className="brand" aria-label="Akash home"><Logo size={34} /></NavLink>
-          <nav className="nav" aria-label="Main">
+          <NavLink to="/" className="brand" aria-label="Akash home" viewTransition data-busy={busyCount > 0}><Logo size={34} /></NavLink>
+          <nav className={`nav ${ready ? "ready" : ""}`} aria-label="Main" ref={navRef}>
+            <span className="nav-ind" aria-hidden="true" />
             {NAV.map(([to, label, icon, end]) => (
-              <NavLink key={to} to={to} end={end}>
+              <NavLink key={to} to={to} end={end} viewTransition>
                 <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" focusable="false" {...I}>{ICONS[icon]}</svg>
                 <span>{label}</span>
               </NavLink>

@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { DiscoveryCard, ReviewLabel } from "../api/types";
 import { TRIAGE, VET } from "../lib/labels";
+import { CaseArt, KIND_BY_CATEGORY } from "./Scene";
 
 const REVIEW_TEXT: Record<ReviewLabel, string> = {
   interesting: "Interesting", not_interesting: "Not interesting", false_positive: "False positive",
@@ -8,12 +10,24 @@ const REVIEW_TEXT: Record<ReviewLabel, string> = {
 };
 const STRENGTH = { none: "No signal", weak: "Weak signal", moderate: "Moderate signal", strong: "Strong signal" } as const;
 
-export function DiscoveryCardView({ c, picked, onPick, onReviewed, onReport, busy }: {
-  c: DiscoveryCard; picked: boolean; onPick: () => void; onReviewed: () => void; onReport: () => void; busy: boolean;
+export function DiscoveryCardView({ c, picked, onPick, onReviewed, onReport, busy, index = 0 }: {
+  index?: number; c: DiscoveryCard; picked: boolean; onPick: () => void; onReviewed: () => void; onReport: () => void; busy: boolean;
 }) {
   const t = TRIAGE[c.triage_category];
+  // A short confirmation only when the stored review state really changed, not on first render.
+  const prev = useRef(c.review.mine);
+  const [just, setJust] = useState(false);
+  useEffect(() => {
+    if (prev.current === c.review.mine) return;
+    prev.current = c.review.mine;
+    setJust(true);
+    const id = window.setTimeout(() => setJust(false), 1100);
+    return () => window.clearTimeout(id);
+  }, [c.review.mine]);
   return (
-    <article className="dcard" aria-label={`Candidate ${c.name}`}>
+    <article className="dcard" aria-label={`Candidate ${c.name}`} data-just-reviewed={just || undefined}
+      style={{ ["--i" as string]: Math.min(index, 9) }}>
+      <CaseArt kind={KIND_BY_CATEGORY[c.triage_category]} seed={index + 1} className="caseart dthumb" />
       <header>
         <h3>{c.name}</h3>
         <span className={`dcat tone-${t.tone}`}>{t.title}</span>

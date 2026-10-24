@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { binWindow, estimateEpoch, niceTicks, robustRange, type Series } from "../lib/lc";
 import { CanvasPlot, type Draw } from "./CanvasPlot";
 
@@ -27,6 +27,19 @@ export function LightCurvePlot({ series, period, t0, durationH }: {
   const [width, setWidth] = useState(0);
   const tmin = series.t[0] ?? 0, tmax = series.t[series.t.length - 1] ?? 1;
   const yr = useMemo(() => robustRange(series.f), [series]);
+  // The trace draws itself left to right once when the data arrives. Skipped for reduced motion.
+  const [rv, setRv] = useState(1);
+  useEffect(() => {
+    if (!series.t.length || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setRv(1); return; }
+    let raf = 0; const t0 = performance.now();
+    const step = (now: number) => {
+      const k = Math.min(1, (now - t0) / 1700);
+      setRv(1 - (1 - k) ** 3);
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    setRv(0); raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [series]);
   const draw = useCallback<Draw>((ctx, w, h, c, hover) => {
     const { X, Y } = axes(ctx, w, h, c, [0, tmax - tmin], yr, (v) => `${v.toFixed(0)}`, ppm);
     if (period) { // predicted dip windows
@@ -37,18 +50,27 @@ export function LightCurvePlot({ series, period, t0, durationH }: {
       ctx.globalAlpha = 1;
     }
     ctx.fillStyle = c.ink2; ctx.globalAlpha = 0.75;
-    for (let i = 0; i < series.t.length; i++) {
+    const upto = Math.ceil(series.t.length * rv);
+    for (let i = 0; i < upto; i++) {
       const y = series.f[i];
       if (y < yr[0] || y > yr[1]) continue;
       ctx.fillRect(X(series.t[i] - tmin) - 0.6, Y(y) - 0.6, 1.5, 1.5);
     }
     ctx.globalAlpha = 1;
+    if (rv < 1 && upto > 0) {   // the scanning edge
+      const sx = X(series.t[Math.min(upto, series.t.length) - 1] - tmin);
+      const g = ctx.createLinearGradient(sx - 28, 0, sx, 0);
+      g.addColorStop(0, "transparent"); g.addColorStop(1, c.lamp);
+      ctx.globalAlpha = 0.28; ctx.fillStyle = g; ctx.fillRect(sx - 28, PAD.t, 28, h - PAD.t - PAD.b);
+      ctx.globalAlpha = 0.9; ctx.fillStyle = c.lamp; ctx.fillRect(sx, PAD.t, 1.2, h - PAD.t - PAD.b);
+      ctx.globalAlpha = 1;
+    }
     ctx.fillStyle = c.ink3; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
     ctx.fillText("days since start", w - PAD.r, h - 2);
     if (hover !== null && hover >= PAD.l && hover <= w - PAD.r) {
       ctx.strokeStyle = c.ink3; ctx.beginPath(); ctx.moveTo(hover + .5, PAD.t); ctx.lineTo(hover + .5, h - PAD.b); ctx.stroke();
     }
-  }, [series, period, t0, durationH, tmin, tmax, yr]);
+  }, [series, period, t0, durationH, tmin, tmax, yr, rv]);
 
   const readout = useMemo(() => {
     if (hx === null || !series.t.length || width <= PAD.l + PAD.r) return "";

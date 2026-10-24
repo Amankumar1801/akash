@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useActivity } from "../lib/activity";
+import { Loader } from "../components/Loader";
 import { Link, useParams } from "react-router-dom";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { EvidenceRow, InvestigationDetail, JobEvent, ObjectOut, ProvGraph, VariabilityResult } from "../api/types";
 import { Ask } from "../components/Ask";
 import { EvidenceStrip } from "../components/EvidenceStrip";
+import { EvidenceRings } from "../components/EvidenceRings";
+import { Constellation } from "../components/Constellation";
+import { TransitScene } from "../components/TransitScene";
 import { FoldPlot, LightCurvePlot, useEpoch } from "../components/LightCurvePlots";
 import { ReportPanel } from "../components/ReportPanel";
 import { ProvGraphView } from "../components/ProvGraph";
@@ -16,6 +21,18 @@ import { Verdict } from "../components/Verdict";
 import { follow } from "../lib/follow";
 import { cleanSeries, type Series } from "../lib/lc";
 import { reduceLanes } from "../lib/phases";
+
+/** Whole seconds since `active` became true; 0 while inactive. Ticks once a second, only while active. */
+function useElapsed(active: boolean): number {
+  const [sec, setSec] = useState(0);
+  useEffect(() => {
+    if (!active) { setSec(0); return; }
+    const t0 = Date.now();
+    const h = window.setInterval(() => setSec(Math.floor((Date.now() - t0) / 1000)), 1000);
+    return () => window.clearInterval(h);
+  }, [active]);
+  return sec;
+}
 
 type Tab = "summary" | "evidence" | "provenance" | "ask" | "report";
 const EMPTY: Series = { t: [], f: [] };
@@ -92,6 +109,9 @@ export function Investigation() {
   const period = a?.transit?.period_d.value ?? null;
   const t0 = useEpoch(series, period);
   const running = detail?.status === "queued" || detail?.status === "running";
+  useActivity(running);
+  const fetching = running && lanes[0].state === "running";
+  const waited = useElapsed(fetching);
   const openEvidence = (eid: string) => { setSelected(eid); setTab("evidence"); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   const cancel = async () => { try { setDetail({ ...(await api.cancelInvestigation(id)), object_id: detail?.object_id ?? null, assessment: null, n_evidence: null }); } catch (e) { setErr(explain(e)); } };
@@ -103,6 +123,7 @@ export function Investigation() {
     <div className="inv">
       <aside className="rail" aria-label="Progress">
         <h2>{running ? "Working through the pipeline" : "How this was run"}</h2>
+        <Constellation lanes={lanes} />
         <Recorder lanes={lanes} />
         {running && <p style={{ marginTop: 16 }}><button className="btn" onClick={() => void cancel()}>Cancel investigation</button></p>}
         {lost && <p className="notice bad" style={{ marginTop: 14 }}>The live connection dropped. Reload to see the latest state.</p>}
@@ -123,6 +144,13 @@ export function Investigation() {
         {detail?.status === "failed" && <p className="notice bad" role="alert" style={{ marginTop: 22 }}>This investigation failed: {detail.error ?? "unknown error"}. Nothing was recorded as a result.</p>}
         {detail?.status === "cancelled" && <p className="notice" style={{ marginTop: 22 }}>Cancelled before finishing. Nothing was recorded as a result.</p>}
         {running && <p className="notice" style={{ marginTop: 22 }}>Findings appear when every phase has finished. The light curve shows as soon as the data arrives.</p>}
+        {fetching && waited >= 15 && (
+          <p className="notice" role="status" style={{ marginTop: 14 }}>
+            Still downloading light curves from the NASA MAST archive ({Math.floor(waited / 60)}:{String(waited % 60).padStart(2, "0")} so far).
+            A star seen for the first time can take several minutes; later runs reuse the saved data.
+            {waited >= 600 && " This is unusually long: look at the backend window for an error, or cancel and try again."}
+          </p>
+        )}
         {err && detail && <p className="notice bad" role="alert" style={{ marginTop: 22 }}>{err}</p>}
 
         {detail?.status === "succeeded" && !a && (
@@ -134,6 +162,9 @@ export function Investigation() {
         {detail?.status === "succeeded" && <ReviewBar id={id} />}
         {a && <div style={{ marginTop: 18 }}><Verdict a={a} evidence={evidence} onOpenEvidence={openEvidence} /></div>}
 
+        {a?.transit && period && (
+          <TransitScene depthPpm={a.transit.depth_ppm} durationH={a.transit.duration_h} periodD={period} />
+        )}
         {series.t.length > 0 && (
           <div className="plots">
             <LightCurvePlot series={series} period={period} t0={t0} durationH={a?.transit?.duration_h ?? 0} />
@@ -158,11 +189,11 @@ export function Investigation() {
             <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
               {tab === "summary" && a && <Sheet a={a} />}
               {tab === "summary" && !a && <p className="empty">There are no readouts because no signal was found. The evidence tab shows what was checked.</p>}
-              {tab === "evidence" && (evidence.length ? <EvidenceStrip rows={evidence} selected={selected} onSelect={setSelected} />
-                : <div className="skel" style={{ height: 160, marginTop: 20 }} />)}
+              {tab === "evidence" && (evidence.length ? <><EvidenceRings rows={evidence} selected={selected} onSelect={setSelected} /><EvidenceStrip rows={evidence} selected={selected} onSelect={setSelected} /></>
+                : <Loader variant="inline" label="Loading" />)}
               {tab === "report" && <ReportPanel id={id} />}
               {tab === "ask" && <Ask id={id} onOpenEvidence={openEvidence} />}
-              {tab === "provenance" && (prov ? <ProvGraphView g={prov} /> : <div className="skel" style={{ height: 160, marginTop: 20 }} />)}
+              {tab === "provenance" && (prov ? <ProvGraphView g={prov} /> : <Loader variant="inline" label="Loading" />)}
             </div>
           </>
         )}

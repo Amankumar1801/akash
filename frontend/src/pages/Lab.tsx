@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { Experiment, ExperimentConfig, RecoveryBin, Rate } from "../api/types";
+import { useActivity } from "../lib/activity";
+import { Spinner } from "../components/Loader";
 import { PageHead } from "../components/PageHead";
+import { Scene } from "../components/Scene";
 
 const DEFAULTS: ExperimentConfig = {
   n_trials: 20, n_controls: 6, seed: 0, period_min_d: 1, period_max_d: 10,
@@ -57,6 +60,7 @@ export function Lab() {
   const timer = useRef<number | undefined>(undefined);
   const running = exp !== null && (exp.status === "queued" || exp.status === "running");
 
+  useActivity(running);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   function poll(id: string) {
@@ -83,6 +87,7 @@ export function Lab() {
 
   return (
     <section className="section">
+      <Scene name="lab" />
       <PageHead eyebrow="Lab" title="Run your own" accent="experiments.">
         Plant transits of known size in noisy light curves, run the real pipeline, and count how many it finds.
         This measures how sensitive the pipeline is, and how often it raises an alarm when nothing is there.
@@ -95,19 +100,19 @@ export function Lab() {
         <label>Shortest period (days){num("period_min_d")}</label><label>Longest period (days){num("period_max_d")}</label>
         <label>Shallowest dip (ppm){num("depth_min_ppm")}</label><label>Deepest dip (ppm){num("depth_max_ppm")}</label>
         <div style={{ alignSelf: "end" }}>
-          <button className="btn" disabled={running || api.kind === "demo"}>{running ? "Running" : "Run experiment"}</button>
+          <button className="btn" disabled={running || api.kind === "demo"}>{running ? <><Spinner />Running</> : "Run experiment"}</button>
           {running && <button type="button" className="btn" style={{ marginLeft: 8 }} onClick={() => void cancel()}>Cancel</button>}
         </div>
       </form>
       <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>Each trial takes a few seconds. Up to 60 transits and 20 controls per run.</p>
       {err && <p className="notice bad" role="alert" style={{ marginTop: 14 }}>{err}</p>}
-      {exp && running && (<div aria-live="polite"><div className="lab-bar" role="progressbar" aria-valuemin={0} aria-valuemax={exp.total} aria-valuenow={exp.done}>
+      {exp && running && (<div aria-live="polite" className="lab-run"><div className="lab-scan" aria-hidden="true" /><div className="lab-bar" role="progressbar" aria-valuemin={0} aria-valuemax={exp.total} aria-valuenow={exp.done}>
         <i style={{ width: `${(100 * exp.done) / Math.max(exp.total, 1)}%` }} /></div>
         <p className="muted" style={{ fontSize: 13 }}>{exp.done} of {exp.total} runs done</p></div>)}
       {exp?.status === "failed" && <p className="notice bad" role="alert" style={{ marginTop: 14 }}>The experiment failed: {exp.error}</p>}
       {exp?.status === "cancelled" && <p className="notice" style={{ marginTop: 14 }}>Cancelled. Nothing was recorded.</p>}
       {r && (
-        <div style={{ marginTop: 22 }}>
+        <div className="reveal-block" style={{ marginTop: 22 }}>
           <h3>Results</h3>
           <p className="prose" style={{ marginTop: 6 }}>
             Recovered {r.overall_recovery.k} of {r.n_trials} planted transits{ci(r.overall_recovery)}.

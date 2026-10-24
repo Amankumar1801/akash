@@ -144,10 +144,6 @@ input[type=checkbox] { accent-color: var(--lamp); width: 16px; height: 16px; }
 .hero { position: relative; overflow: hidden; padding: clamp(36px, 6vw, 72px) var(--gutter) 36px; }
 .hero canvas.sky { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .9; }
 .hero-orb { position: absolute; right: clamp(-120px, -2vw, 0px); top: -40px; width: clamp(220px, 28vw, 410px); aspect-ratio: 1; pointer-events: none; }
-.hero-orb i { position: absolute; inset: 14%; border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #0b1222 0%, #03050b 70%);
-  box-shadow: inset -10px -6px 30px rgba(0,0,0,.9), 0 0 0 1px color-mix(in srgb, var(--lamp) 40%, transparent),
-    0 0 40px 2px color-mix(in srgb, var(--lamp) 32%, transparent), 0 0 120px 20px color-mix(in srgb, var(--lamp) 12%, transparent); }
 .hero-orb::before { content: ""; position: absolute; left: -30%; right: -30%; top: 50%; height: 1px;
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--lamp) 70%, #fff), transparent); filter: blur(.4px); opacity: .75; }
 .hero-inner { position: relative; max-width: 1180px; display: grid; gap: 22px; }
@@ -508,7 +504,7 @@ dialog::backdrop { background: rgba(2, 4, 10, .78); backdrop-filter: blur(3px); 
   .nav a::before { left: 8px; right: 8px; top: auto; bottom: 0; width: auto; height: 2px; transform: scaleX(0); }
   .nav a[aria-current="page"]::before { transform: scaleX(1); }
   .bar { position: static; height: 48px; } .tagline { display: none; }
-  .hero-orb { opacity: .55; right: -26%; top: -20px; }
+  .hero-orb { --orb-o: .4; right: -26%; top: -20px; }
   .rail { top: 0; }
 }
 @media (max-width: 560px) {
@@ -528,4 +524,348 @@ dialog::backdrop { background: rgba(2, 4, 10, .78); backdrop-filter: blur(3px); 
 .feed-filters { align-items: end; }
 .feed-filters label { align-content: end; }
 .spec-actions label.btn, .img-controls label.btn { font: 500 14px/1 var(--ui); letter-spacing: 0; text-transform: none; color: var(--ink); display: inline-flex; }
-@media (max-width: 900px) { .hero-orb { opacity: .32; } }
+@media (max-width: 900px) { .hero-orb { --orb-o: .32; } }
+
+/* =====================================================================================
+   MOTION SYSTEM
+   Tokens: micro 150ms (controls) · ui 240ms (state changes) · reveal 560ms (content, charts) ·
+   hero 1100ms (logo, hero sequence). Ambient motion is slow and continuous. Everything below is
+   additive: it animates transform/opacity (and SVG dash offsets), never layout.
+   ===================================================================================== */
+:root {
+  --m-micro: 150ms; --m-ui: 240ms; --m-reveal: 560ms; --m-hero: 1100ms;
+  --ease-out: cubic-bezier(.2, .7, .2, 1); --ease-ctl: cubic-bezier(.4, 0, .2, 1);
+  --ease-spring: cubic-bezier(.34, 1.45, .5, 1);
+}
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes rise-soft { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes accent { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes scan { from { transform: translateX(-110%); } to { transform: translateX(310%); } }
+
+/* ---- logo ---- */
+.brand { border-radius: var(--r); }
+.lm-ring { transform-origin: 20px 20px; animation: lm-drift 140s linear infinite; }
+.lm-glint { transform-origin: 20px 20px; animation: lm-pulse 11s ease-in-out infinite; }
+.lm-spark { opacity: 0; }
+.wordmark { transition: color var(--m-ui) var(--ease-ctl); }
+@keyframes lm-drift { to { transform: rotate(360deg); } }
+@keyframes lm-pulse { 0%, 78%, 100% { opacity: 1; transform: scale(1); } 88% { opacity: .62; transform: scale(.94); } 94% { opacity: 1; transform: scale(1.07); } }
+@keyframes lm-travel { 0% { opacity: 0; stroke-dashoffset: 0; } 20% { opacity: .95; } 100% { opacity: 0; stroke-dashoffset: -52; } }
+@keyframes lm-run { to { stroke-dashoffset: -91.1; } }
+@keyframes lm-glow { 0%, 100% { opacity: .78; transform: scale(.97); } 50% { opacity: 1; transform: scale(1.1); } }
+.brand:hover .wordmark, .brand:focus-visible .wordmark { color: var(--lamp); }
+.brand:hover .lm-glint, .brand:focus-visible .lm-glint { animation: lm-glow 900ms ease-in-out 1; }
+.brand:hover .lm-spark, .brand:focus-visible .lm-spark { animation: lm-travel 900ms var(--ease-out) 1 both; }
+/* real work in flight (see lib/activity.ts): the highlight circles the ring, the glint breathes */
+.brand[data-busy="true"] .lm-spark { opacity: .9; animation: lm-run 2.6s linear infinite; transition: opacity var(--m-ui); }
+.brand[data-busy="true"] .lm-glint { animation: lm-glow 1.9s ease-in-out infinite; }
+.brand[data-busy="true"] .wordmark { color: var(--lamp); }
+
+/* ---- sliding route indicator ---- */
+.nav { position: relative; }
+.nav-ind { position: absolute; left: 0; top: 0; width: var(--iw, 100%); height: var(--ih, 0px); pointer-events: none; border-radius: var(--r);
+  transform: translate(var(--ix, 0px), var(--iy, 0px)); background: color-mix(in srgb, var(--lamp) 10%, transparent); }
+.nav-ind::before { content: ""; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 2px; border-radius: 2px;
+  background: var(--lamp); box-shadow: 0 0 10px var(--lamp); }
+.nav.ready .nav-ind { transition: transform 380ms var(--ease-out), width 380ms var(--ease-out), height 380ms var(--ease-out); }
+.nav a { z-index: 1; }
+.nav a::before { display: none; }
+.nav a[aria-current="page"] { background: transparent; }
+.nav a:active { transform: translateX(1px); }
+@media (max-width: 900px) {
+  .nav-ind::before { left: 8px; right: 8px; top: auto; bottom: 0; width: auto; height: 2px; }
+}
+
+/* ---- route transition: old page settles out, new heading first, then the rest ---- */
+.route { animation: none; view-transition-name: route; }
+@supports not (view-transition-name: route) { .route { animation: settle 240ms var(--ease-out) both; } }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-old(root) { display: none; }
+::view-transition-group(route) { animation-duration: 0s; }
+::view-transition-old(route) { animation: vt-out 150ms var(--ease-ctl) both; }
+::view-transition-new(route) { animation: vt-in 200ms var(--ease-out) both; }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-4px); } }
+@keyframes vt-in { from { opacity: 0; } }
+.route .pagehead > .eyebrow, .route .hero-inner > .eyebrow { animation: rise var(--m-reveal) var(--ease-out) both; }
+.route .pagehead h1, .route .hero h1 { animation: rise var(--m-reveal) var(--ease-out) 70ms both; }
+.route .pagehead h1 em, .route .hero h1 em { animation: accent 700ms var(--ease-out) 360ms both; }
+.route .pagehead .prose, .route .hero .prose { animation: rise var(--m-reveal) var(--ease-out) 150ms both; }
+.route .section > :not(.pagehead) { animation: rise-soft 420ms var(--ease-out) both; }
+.route .section > :nth-child(2) { animation-delay: 140ms; }
+.route .section > :nth-child(3) { animation-delay: 190ms; }
+.route .section > :nth-child(4) { animation-delay: 240ms; }
+.route .section > :nth-child(n+5) { animation-delay: 280ms; }
+.route .section > .dlist, .route .section > .scroll-x { animation-duration: 300ms; }
+
+/* ---- logbook hero: an instrument powering on ---- */
+.hero-orb { opacity: 0; animation: orb-in 1.4s var(--ease-out) 120ms forwards; }
+@keyframes orb-in { to { opacity: var(--orb-o, 1); } }
+@keyframes breathe { from { opacity: .45; } to { opacity: 1; } }
+.orb-rings { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; fill: none; z-index: 4; }
+.orb-orbit { stroke: color-mix(in srgb, var(--lamp) 42%, transparent); stroke-width: .9; }
+.orb-fine { stroke: color-mix(in srgb, var(--ink) 14%, transparent); stroke-width: .6; }
+.orb-scan { transform-origin: 200px 200px; animation: spin 46s linear infinite; }
+.orb-scan-ring { stroke: color-mix(in srgb, var(--lamp) 78%, transparent); stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 120 986; }
+/* ---- solar eclipse: one 20 s loop. Only transform and opacity are animated. ---- */
+.hero-orb { --sun-1: #fff6c4; --sun-2: #ffd43b; --sun-3: #f4a11a; --sun-glow: 255, 212, 59; --eclipse: 20s; }
+:root[data-theme="red"] .hero-orb { --sun-1: #ffd2c4; --sun-2: #ff7a5c; --sun-3: #e0472b; --sun-glow: 255, 106, 77; }
+.hero-orb i { position: absolute; border-radius: 50%; display: block; }
+.orb-sun { inset: 14%; z-index: 0; animation: sun-dim var(--eclipse) linear infinite;
+  background: radial-gradient(circle at 50% 50%, var(--sun-1) 0%, var(--sun-2) 42%, var(--sun-3) 100%);
+  box-shadow: 0 0 0 1px rgba(var(--sun-glow), .55); }
+/* the glow and the hot core change intensity on different, unsynchronised periods, so it never looks like a metronome */
+.orb-sun::before { content: ""; position: absolute; inset: -42%; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(var(--sun-glow), .55) 0%, rgba(var(--sun-glow), .22) 42%, transparent 100%);
+  animation: sun-pulse 5.3s ease-in-out infinite alternate; }
+.orb-sun::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, #fffbe6 0%, rgba(255, 251, 230, 0) 62%);
+  animation: sun-core 3.1s ease-in-out infinite alternate; }
+@keyframes sun-pulse { from { opacity: .45; transform: scale(.94); } to { opacity: 1; transform: scale(1.07); } }
+@keyframes sun-core { from { opacity: .1; } to { opacity: .95; } }
+/* the sky darkens towards totality, then brightens again */
+@keyframes sun-dim { 0%, 22% { opacity: 1; } 50% { opacity: .38; } 78%, 100% { opacity: 1; } }
+.orb-moon { inset: 11%; z-index: 3; transform: translate(135%, 0);
+  background:
+    radial-gradient(circle at 64% 36%, rgba(120, 130, 158, .26) 0 6%, transparent 7%),
+    radial-gradient(circle at 36% 62%, rgba(120, 130, 158, .22) 0 9%, transparent 10%),
+    radial-gradient(circle at 58% 72%, rgba(120, 130, 158, .18) 0 5%, transparent 6%),
+    radial-gradient(circle at 30% 28%, #ffffff 0%, #f3f5fa 48%, #cdd3e1 100%);
+  box-shadow: inset -14px -10px 30px rgba(70, 80, 112, .38), 0 0 34px 2px rgba(255, 255, 255, .16);
+  animation: moon-pass var(--eclipse) linear infinite; }
+/* constant speed, so the passage through totality is the slow part only because the path there is short */
+@keyframes moon-pass {
+  0%   { transform: translate(-138%, 7%); }
+  12%  { transform: translate(-100%, 5%); }
+  44%  { transform: translate(-8%, 0.5%); }
+  56%  { transform: translate(8%, -0.5%); }
+  88%  { transform: translate(100%, -5%); }
+  100% { transform: translate(138%, -7%); }
+}
+/* the corona, visible only around totality */
+.orb-corona { inset: 2%; z-index: 2; opacity: 0; animation: corona var(--eclipse) linear infinite;
+  background: radial-gradient(closest-side, transparent 79%, rgba(255, 244, 205, .9) 81.5%, rgba(var(--sun-glow), .38) 90%, transparent 100%); }
+@keyframes corona {
+  0%, 39% { opacity: 0; transform: scale(.97); }
+  48% { opacity: 1; transform: scale(1); }
+  52% { opacity: 1; transform: scale(1.03); }
+  61%, 100% { opacity: 0; transform: scale(1.05); }
+}
+.route .hero-inner .search { animation: rise var(--m-reveal) var(--ease-out) 300ms both; }
+.route .hero-inner .search-box { animation: lightup 1300ms var(--ease-ctl) 650ms backwards; }
+@keyframes lightup { 0% { border-color: var(--rule); box-shadow: none; } 45% { border-color: var(--lamp); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lamp) 16%, transparent), inset 0 0 22px color-mix(in srgb, var(--lamp) 8%, transparent); } 100% { border-color: var(--rule); box-shadow: none; } }
+.route .hero-inner > div:last-child .label-mono { animation: fade 500ms ease-out 420ms both; }
+.route .demo-list li { animation: rise-soft 420ms var(--ease-out) both; }
+.route .demo-list li:nth-child(1) { animation-delay: 460ms; } .route .demo-list li:nth-child(2) { animation-delay: 510ms; }
+.route .demo-list li:nth-child(3) { animation-delay: 560ms; } .route .demo-list li:nth-child(4) { animation-delay: 610ms; }
+.route .demo-list li:nth-child(n+5) { animation-delay: 650ms; }
+.search-box { position: relative; overflow: hidden; }
+.search-box:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lamp) 16%, transparent), inset 0 0 26px color-mix(in srgb, var(--lamp) 7%, transparent); }
+/* the scan runs only while the submitted target is really being created */
+.search-box.busy::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 34%;
+  background: linear-gradient(90deg, transparent, var(--lamp), transparent); animation: scan 1.4s var(--ease-ctl) infinite; }
+.hero-orb { transition: transform 600ms var(--ease-out); }
+
+/* ---- investigation results ---- */
+.verdict { position: relative; }
+.verdict::before { content: ""; position: absolute; left: 0; top: 0; height: 2px; width: 100%; background: var(--lamp);
+  transform-origin: left; animation: sweep 1100ms var(--ease-out) 150ms both; }
+@keyframes sweep { 0% { transform: scaleX(0); opacity: 1; } 60% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: .18; } }
+.verdict > * { animation: rise-soft 480ms var(--ease-out) both; }
+.verdict > :nth-child(2) { animation-delay: 80ms; } .verdict > :nth-child(3) { animation-delay: 160ms; } .verdict > :nth-child(n+4) { animation-delay: 240ms; }
+.sheet .cell { animation: rise-soft 420ms var(--ease-out) both; }
+.sheet .cell:nth-child(1) { animation-delay: 60ms; } .sheet .cell:nth-child(2) { animation-delay: 110ms; } .sheet .cell:nth-child(3) { animation-delay: 160ms; }
+.sheet .cell:nth-child(n+4) { animation-delay: 210ms; }
+.plot .frame canvas { animation: wipe 760ms var(--ease-out) both; }
+.lane.done .trace path { transition: stroke var(--m-ui); }
+
+/* ---- candidate records ---- */
+.dlist.reveal .dcard { animation: rise 480ms var(--ease-out) calc(var(--i, 0) * 55ms) both; }
+.dcard { transition: border-color var(--m-ui) var(--ease-ctl), box-shadow var(--m-ui) var(--ease-ctl); }
+.dcard:hover, .dcard:focus-within { box-shadow: 0 14px 34px -18px rgba(0, 0, 0, .85), 0 0 0 1px color-mix(in srgb, var(--lamp) 14%, transparent); }
+.dcard footer .btn:not(:first-child) { opacity: .74; transition: opacity var(--m-ui), border-color var(--m-micro), background var(--m-micro); }
+.dcard:hover footer .btn, .dcard:focus-within footer .btn { opacity: 1; }
+.dcard[data-just-reviewed] { animation: reviewed 1100ms var(--ease-out); }
+.dcard[data-just-reviewed] footer button[aria-pressed="true"] { animation: tick-in 520ms var(--ease-spring); border-color: var(--supports); color: var(--supports); }
+@keyframes reviewed { 0% { box-shadow: 0 0 0 1px var(--supports), 0 0 26px color-mix(in srgb, var(--supports) 26%, transparent); } 100% { box-shadow: 0 0 0 1px transparent, 0 0 0 transparent; } }
+@keyframes tick-in { from { transform: scale(.94); } to { transform: none; } }
+.dcard footer button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--supports) 60%, var(--rule)); }
+
+/* ---- models, images, lab ---- */
+.tbl.enter tbody tr { animation: rise-soft 320ms var(--ease-out) both; }
+.tbl.enter tbody tr:nth-child(2) { animation-delay: 40ms; } .tbl.enter tbody tr:nth-child(3) { animation-delay: 80ms; }
+.tbl.enter tbody tr:nth-child(n+4) { animation-delay: 110ms; }
+.model-detail { animation: rise-soft 380ms var(--ease-out) both, edge 1400ms var(--ease-ctl) both; }
+@keyframes edge { 0% { border-color: var(--lamp); } 100% { border-color: var(--rule); } }
+.img-stage { transition: border-color var(--m-ui); }
+.img-frame > :not(.img-overlay) { animation: fade 480ms var(--ease-out) both; }
+.img-overlay { animation: fade 420ms var(--ease-out) 380ms both; }
+.lab-form input { transition: border-color var(--m-micro), box-shadow var(--m-micro); }
+.lab-run { position: relative; }
+.lab-scan { position: relative; height: 2px; margin-top: 14px; max-width: 760px; overflow: hidden; background: var(--rule-soft); }
+.lab-scan::after { content: ""; position: absolute; inset: 0 auto 0 0; width: 30%; background: linear-gradient(90deg, transparent, var(--lamp), transparent); animation: scan 1.6s var(--ease-ctl) infinite; }
+.reveal-block { animation: rise var(--m-reveal) var(--ease-out) both; }
+.lab-chart circle { animation: pop 560ms var(--ease-spring) 120ms both; transform-box: fill-box; transform-origin: center; }
+.lab-chart line[stroke-width="2"] { animation: grow 620ms var(--ease-out) 60ms both; transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { opacity: 0; transform: scale(.2); } to { opacity: 1; transform: none; } }
+@keyframes grow { from { transform: scaleY(0); } to { transform: none; } }
+
+/* ---- shared controls and loaders ---- */
+.btn { position: relative; }
+.btn:hover:not([disabled]) { box-shadow: 0 0 18px -4px color-mix(in srgb, var(--ink) 18%, transparent); }
+.btn:active:not([disabled]) { transform: translateY(1px) scale(.985); }
+.spinner { flex: none; animation: spin .8s linear infinite; }
+.loader.inline { padding: 12px 2px; font-size: 12px; gap: 10px; }
+.loader-orbit { animation-duration: 1.4s; }
+html.theme-fade, html.theme-fade * { transition: background-color 320ms ease, color 320ms ease, border-color 320ms ease, fill 320ms ease !important; }
+.space-glow { position: absolute; left: 0; top: 0; width: 600px; height: 600px; border-radius: 50%; will-change: transform;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--ink) 5.5%, transparent), transparent); }
+.space-grid { inset: -12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; animation-delay: 0ms !important;
+    transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  .space-glow { display: none; }
+  .orb-scan, .loader-orbit, .spinner { animation: none !important; }
+  .orb-sun, .orb-sun::before, .orb-sun::after { animation: none !important; }   /* a still sun; the moon stays off to the side */
+  .orb-moon, .orb-corona { animation: none !important; }
+}
+@media (hover: none) { .space-glow { display: none; } }
+
+/* choice of how many sectors to search: the search time grows with the amount of data */
+.depth-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.depth-row .field { width: auto; min-width: 0; max-width: 100%; padding-block: 8px; }
+
+/* ---- space imagery (illustrations, see public/assets/space/README.md) ----
+   Scenes are blended with `screen`, so the near-black edges of each picture vanish into the page and
+   the text above stays on a dark ground. A missing file simply leaves the page plain. */
+.space-img { position: absolute; inset: 0; background: url("/assets/space/space-background.webp") center / cover no-repeat; opacity: .55; mix-blend-mode: screen; }
+.section { position: relative; }
+.section > * { position: relative; z-index: 1; }
+.section > .scene { position: absolute; z-index: 0; left: 0; right: 0; top: 0; height: min(560px, 70vh); pointer-events: none;
+  background-position: center top; background-size: cover; background-repeat: no-repeat; mix-blend-mode: screen; opacity: .8;
+  -webkit-mask-image: linear-gradient(#000 55%, transparent); mask-image: linear-gradient(#000 55%, transparent); }
+.scene-candidates { background-image: url("/assets/space/candidates-accretion-disk.webp"); }
+.scene-sky { background-image: url("/assets/space/sky-galaxy-horizon.webp"); }
+.scene-models { background-image: url("/assets/space/models-planet-horizon.webp"); }
+.scene-lab { background-image: url("/assets/space/lab-orbital-structure.webp"); }
+@media (prefers-reduced-motion: no-preference) {
+  .scene { animation: scene-drift 60s ease-in-out infinite alternate; }
+}
+@keyframes scene-drift { from { transform: scale(1); } to { transform: scale(1.04) translate3d(-.6%, 0, 0); } }
+
+.hero-horizon { position: absolute; inset: 0; background: url("/assets/space/hero-planetary-horizon.webp") center bottom / cover no-repeat;
+  mix-blend-mode: screen; opacity: .85; pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 20%); mask-image: linear-gradient(90deg, transparent, #000 20%); }
+.hero-inner { z-index: 2; }
+.hero-orb { z-index: 1; }
+
+.caseart { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; margin: -2px 0 8px; background: var(--deck); }
+.demo-list .caseart { margin: 0 0 8px; }
+.dthumb { width: 100%; height: 104px; aspect-ratio: auto; margin: 0; object-position: center 40%; }
+.dlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 14px; }
+.dcard { backdrop-filter: blur(2px); background: color-mix(in srgb, var(--deck) 78%, transparent); }
+
+.stats-panel { max-width: 560px; padding: 14px 16px; border: 1px solid var(--rule); border-radius: var(--r);
+  background: color-mix(in srgb, var(--night) 62%, transparent); backdrop-filter: blur(6px); display: grid; gap: 8px; }
+.stats-panel dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 0; }
+.stats-panel dt { color: var(--ink-3); font-size: 12px; }
+.stats-panel dd { margin: 2px 0 0; font-size: 24px; color: var(--ink); }
+.stats-panel p { margin: 0; font-size: 12.5px; }
+
+.img-idle { margin: 18px 0 0; max-width: 760px; }
+.img-idle img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--rule-soft); }
+.img-idle figcaption { margin-top: 8px; font-size: 13px; }
+@media (max-width: 640px) { .dthumb { height: 84px; } .section > .scene { height: 360px; opacity: .6; } .hero-horizon { opacity: .55; } }
+
+.scene-models { opacity: .55; }
+.section .prose, .section .tbl td, .section .tbl th { text-shadow: 0 0 10px var(--night), 0 0 3px var(--night); }
+.scene-lab { opacity: .6; }
+
+/* ================= signature animations (all transform/opacity, all off for reduced motion) ================= */
+
+/* pipeline constellation */
+.constellation { display: block; width: 100%; height: auto; max-width: 280px; margin: 4px 0 14px; overflow: visible; }
+.cs-line { stroke: var(--rule); stroke-width: 1; }
+.cs-line.lit { stroke: color-mix(in srgb, var(--lamp) 70%, var(--rule)); }
+.cs-line.flow { stroke: var(--lamp); stroke-dasharray: 3 9; animation: cs-flow 900ms linear infinite; }
+@keyframes cs-flow { to { stroke-dashoffset: -12; } }
+.cs-core { fill: var(--rule); transition: fill var(--m-ui); }
+.cs-halo { fill: var(--lamp); opacity: 0; transform-box: fill-box; transform-origin: center; }
+.cs-star.done .cs-core { fill: var(--lamp); }
+.cs-star.done .cs-halo { opacity: .18; }
+.cs-star.running .cs-core { fill: var(--lamp); }
+.cs-star.running .cs-halo { animation: cs-pulse 1.4s ease-in-out infinite; }
+.cs-star.skipped .cs-core { fill: none; stroke: var(--ink-3); stroke-dasharray: 2 2; }
+.cs-star.failed .cs-core { fill: var(--contradicts); }
+.cs-star.failed .cs-halo { fill: var(--contradicts); opacity: .25; }
+@keyframes cs-pulse { 0%, 100% { opacity: .1; transform: scale(.6); } 50% { opacity: .45; transform: scale(1.25); } }
+
+/* the measured transit, drawn in step with its dip */
+.transit-scene { margin: 20px 0 0; max-width: 460px; padding: 12px 14px; border: 1px solid var(--rule-soft); border-radius: var(--r);
+  background: color-mix(in srgb, var(--deck) 70%, transparent); }
+.transit-scene svg { display: block; width: 100%; height: auto; overflow: visible; }
+.transit-scene figcaption { margin-top: 6px; font-size: 13px; color: var(--ink-2); }
+.ts-planet { fill: var(--night); animation: ts-cross 7s linear infinite; }
+.ts-curve { fill: none; stroke: var(--ink-3); stroke-width: 1.4; }
+.ts-cursor { stroke: var(--lamp); stroke-width: 1.4; animation: ts-cross-x 7s linear infinite; }
+@keyframes ts-cross { from { transform: translateX(-86px); } to { transform: translateX(86px); } }
+@keyframes ts-cross-x { from { transform: translateX(-86px); opacity: 0; } 6%, 94% { opacity: 1; } to { transform: translateX(86px); opacity: 0; } }
+
+/* evidence rings */
+.rings { margin: 0 0 18px; display: grid; grid-template-columns: minmax(220px, 340px) minmax(0, 1fr); gap: 20px; align-items: center; }
+.rings svg { width: 100%; height: auto; }
+.rings figcaption ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+.rings figcaption p { margin: 0; font-size: 13px; max-width: 52ch; }
+.rg-core { fill: var(--lamp); opacity: .55; }
+.rg-ring { fill: none; stroke: var(--rule); stroke-width: 1; }
+.rg-ring.empty { stroke-dasharray: 1 5; opacity: .7; }
+.rg-spin { transform-box: view-box; transform-origin: 170px 170px; animation: rg-turn 90s linear infinite; }
+.rings svg:hover .rg-spin, .rings svg:focus-within .rg-spin { animation-play-state: paused; }
+@keyframes rg-turn { to { transform: rotate(360deg); } }
+.rg-dot { cursor: pointer; stroke: var(--night); stroke-width: 1.5; transition: r var(--m-micro); }
+.rg-dot:hover, .rg-dot:focus-visible { r: 7.2; }
+.rg-dot.d-supports { fill: var(--supports); } .rg-dot.d-contradicts { fill: var(--contradicts); }
+.rg-dot.d-neutral { fill: var(--neutral); } .rg-dot.d-inconclusive { fill: var(--night); stroke: var(--ink-2); }
+.rg-dot.on { stroke: var(--lamp); stroke-width: 2.4; }
+@media (max-width: 640px) { .rings { grid-template-columns: minmax(0, 1fr); } }
+
+/* sky: a short zoom-and-tilt on selection, a dive when opening a star */
+.sky-wrap { position: relative; perspective: 900px; }
+.sky-map { transition: transform 1.3s var(--ease-out); }
+.sky-map.dip { animation: sky-dip 1.3s var(--ease-out); }
+@keyframes sky-dip { 0% { transform: none; } 32% { transform: scale(1.55) rotateX(22deg); } 100% { transform: none; } }
+.sky-map.dive { animation: none; transition: transform 700ms cubic-bezier(.5, 0, .9, .4), opacity 700ms ease-in; transform: scale(3.4) rotateX(38deg); opacity: .15; }
+.sky-arc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.sky-arc path { fill: none; stroke: var(--lamp); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: arc-draw 620ms var(--ease-out) forwards; filter: drop-shadow(0 0 4px var(--lamp)); }
+@keyframes arc-draw { to { stroke-dashoffset: 0; } }
+
+/* spectrum hover label */
+.spec-wrap { position: relative; }
+.spec-tip { position: absolute; top: 4px; transform: translateX(-50%); max-width: 280px; padding: 4px 8px; font: 12px/1.3 var(--mono);
+  background: var(--deck); border: 1px solid var(--rule); border-radius: 6px; pointer-events: none; white-space: nowrap; z-index: 2; }
+
+/* image measurement rings grow out from the centre */
+.img-ring { transform-box: fill-box; transform-origin: center; animation: ring-grow 700ms var(--ease-out) both; }
+@keyframes ring-grow { from { transform: scale(0); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ambient: an occasional meteor, a breathing rim on the Models planet, a moon that varies each pass */
+.space-meteor { position: absolute; left: 0; top: 0; width: 120px; height: 1.5px; opacity: 0; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 85%, transparent)); }
+.space-meteor.m1 { top: 14%; left: 62%; --dx: -520px; --dy: 230px; rotate: 156deg; animation: meteor 31s linear 7s infinite; }
+.space-meteor.m2 { top: 40%; left: 28%; --dx: 460px; --dy: 190px; rotate: 24deg; animation: meteor 47s linear 21s infinite; }
+@keyframes meteor { 0% { opacity: 0; transform: translate(0, 0); } 0.6% { opacity: .9; } 2.4% { opacity: 0; transform: translate(var(--dx), var(--dy)); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)); } }
+.scene-models::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 34% 52% at 72% 40%, rgba(150, 205, 255, .30), transparent 70%); animation: rim-sweep 14s ease-in-out infinite alternate; }
+@keyframes rim-sweep { from { opacity: .2; transform: translate3d(0, -8%, 0); } to { opacity: .85; transform: translate3d(1.5%, 10%, 0); } }
+.orb-moon { translate: 0 var(--moon-dy, 0%); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-line.flow, .cs-star.running .cs-halo, .ts-planet, .ts-cursor, .rg-spin, .sky-map.dip, .space-meteor, .scene-models::after { animation: none !important; }
+  .space-meteor { display: none; }
+  .ts-cursor { opacity: 1; }
+  .sky-map { transition: none; }
+}

@@ -5,7 +5,9 @@ import sample from "../api/spectrum_sample.json";
 import type { SpectrumResult } from "../api/types";
 import { parseSpectrumCsv } from "../lib/spectrumCsv";
 import { cssVar, useThemeTick } from "../lib/useTheme";
+import { Spinner } from "../components/Loader";
 import { PageHead } from "../components/PageHead";
+import { Scene } from "../components/Scene";
 
 const STATUS: Record<SpectrumResult["redshift"]["status"], string> = {
   no_lines: "No lines strong enough to test",
@@ -18,11 +20,15 @@ const MAX_FILE = 2_000_000;
 
 function SpectrumPlot({ w, f, res }: { w: number[]; f: (number | null)[]; res: SpectrumResult | null }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const last = useRef<{ w?: unknown; f?: unknown; res?: unknown }>({});
   const tick = useThemeTick();
   useEffect(() => {
     const cv = ref.current;
     if (!cv) return;
-    const paint = () => {
+    // t runs 0..1 once per new spectrum/result: axes fade in, the actual trace is revealed left to
+    // right by clipping (no data is recomputed), then the detected lines appear. Repaints for resize
+    // or theme use t = 1.
+    const paint = (t = 1) => {
       const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
       cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
       const ctx = cv.getContext("2d");
@@ -34,6 +40,7 @@ function SpectrumPlot({ w, f, res }: { w: number[]; f: (number | null)[]; res: S
       const x0 = w[0], x1 = w[w.length - 1];
       const X = (x: number) => L + ((x - x0) / (x1 - x0)) * (W - L - R);
       const Y = (y: number) => H - B - ((y - (lo - pad)) / (hi - lo + 2 * pad)) * (H - T - B);
+      ctx.globalAlpha = Math.min(1, t * 3);
       ctx.strokeStyle = cssVar("--rule-soft"); ctx.fillStyle = cssVar("--ink-3"); ctx.font = "11px system-ui"; ctx.lineWidth = 1;
       for (let i = 0; i <= 5; i++) {
         const x = x0 + ((x1 - x0) * i) / 5;
@@ -41,22 +48,43 @@ function SpectrumPlot({ w, f, res }: { w: number[]; f: (number | null)[]; res: S
         ctx.fillText(`${Math.round(x)}`, X(x) - (i === 5 ? 26 : 12), H - 12);
       }
       ctx.fillText("Wavelength (Angstrom)", W / 2 - 50, H - 1);
+      ctx.globalAlpha = 1;
+      const p = Math.min(1, t / 0.75);
+      const sweepX = L + p * (W - L - R);
       if (res) {
         const best = res.redshift.candidates[0];
         const matched = new Map(best?.matched_lines.map((m) => [m.observed_a, m.rest]) ?? []);
         let k = 0;
         for (const ln of res.lines) {
-          ctx.strokeStyle = cssVar(ln.kind === "emission" ? "--supports" : "--warn");
+          const x = X(ln.wavelength_a);
+          if (x > sweepX) continue;                        // a line appears only once the sweep has passed it
+          const age = p >= 1 ? 1 : Math.min(1, (sweepX - x) / 90);
+          const flash = 1 - Math.min(1, age * 1.6);       // a brief bright flash as the sweep crosses
+          const col = cssVar(ln.kind === "emission" ? "--supports" : "--warn");
+          if (flash > 0) {
+            ctx.globalAlpha = flash * 0.5; ctx.fillStyle = col; ctx.fillRect(x - 5, T, 10, H - T - B);
+          }
+          ctx.globalAlpha = Math.min(1, 0.35 + age); ctx.strokeStyle = col;
           ctx.setLineDash([3, 3]);
-          ctx.beginPath(); ctx.moveTo(X(ln.wavelength_a), T); ctx.lineTo(X(ln.wavelength_a), H - B); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, H - B); ctx.stroke();
           ctx.setLineDash([]);
           const name = matched.get(ln.wavelength_a);
           if (name) {
-            ctx.fillStyle = cssVar("--ink");
-            ctx.fillText(name, Math.min(X(ln.wavelength_a) + 3, W - 70), T + 8 + (k++ % 4) * 12);
+            ctx.globalAlpha = Math.min(1, age * 1.4); ctx.fillStyle = cssVar("--ink");
+            ctx.fillText(name, Math.min(x + 3, W - 70), T + 8 + (k++ % 4) * 12);
           }
         }
+        ctx.globalAlpha = 1;
       }
+      if (p < 1) {   // the scanning cursor
+        const g = ctx.createLinearGradient(sweepX - 30, 0, sweepX, 0);
+        g.addColorStop(0, "transparent"); g.addColorStop(1, cssVar("--lamp"));
+        ctx.globalAlpha = 0.22; ctx.fillStyle = g; ctx.fillRect(sweepX - 30, T, 30, H - T - B);
+        ctx.globalAlpha = 0.9; ctx.fillStyle = cssVar("--lamp"); ctx.fillRect(sweepX, T, 1.2, H - T - B);
+        ctx.globalAlpha = 1;
+      }
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, 0, p >= 1 ? W : L + p * (W - L - R), H); ctx.clip();
       ctx.strokeStyle = cssVar("--ink"); ctx.lineWidth = 1.2; ctx.beginPath();
       let pen = false;
       w.forEach((x, i) => {
@@ -65,13 +93,47 @@ function SpectrumPlot({ w, f, res }: { w: number[]; f: (number | null)[]; res: S
         if (!pen) { ctx.moveTo(X(x), Y(y)); pen = true; } else ctx.lineTo(X(x), Y(y));
       });
       ctx.stroke();
+      ctx.restore();
     };
-    paint();
-    const ro = new ResizeObserver(paint); ro.observe(cv);
-    return () => ro.disconnect();
+    const same = last.current.w === w && last.current.f === f && last.current.res === res;
+    last.current = { w, f, res };
+    const still = same || window.matchMedia("(prefers-reduced-motion: reduce)").matches || w.length > 20000;
+    let raf = 0, animating = !still;
+    if (still) paint(1);
+    else {
+      const t0 = performance.now();
+      const step = (now: number) => {
+        const t = Math.min(1, (now - t0) / (res ? 1900 : 1000));
+        paint(t);                  // a steady sweep, so lines flash at a constant pace
+        if (t < 1) raf = requestAnimationFrame(step); else animating = false;
+      };
+      raf = requestAnimationFrame(step);
+    }
+    const ro = new ResizeObserver(() => { if (!animating) paint(1); }); ro.observe(cv);
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); };
   }, [w, f, res, tick]);
-  return <canvas ref={ref} className="spec-plot" role="img"
-    aria-label={`Spectrum from ${w[0]?.toFixed(0)} to ${w[w.length - 1]?.toFixed(0)} Angstrom with ${res?.lines.length ?? 0} detected lines. The line table follows.`} />;
+  const [tip, setTip] = useState<{ x: number; text: string } | null>(null);
+  const near = (e: React.PointerEvent<HTMLCanvasElement>) => {   // the nearest detected line within a few pixels
+    if (!res || !w.length) return;
+    const r = e.currentTarget.getBoundingClientRect(), L = 46, R = 12, x0 = w[0], x1 = w[w.length - 1];
+    const mx = e.clientX - r.left;
+    let best: { x: number; text: string } | null = null, d = 7;
+    for (const ln of res.lines) {
+      const x = L + ((ln.wavelength_a - x0) / (x1 - x0)) * (r.width - L - R);
+      if (Math.abs(x - mx) < d) {
+        d = Math.abs(x - mx);
+        best = { x, text: `${ln.kind === "emission" ? "Emission" : "Absorption"} line at ${ln.wavelength_a.toFixed(1)} Å${ln.matched ? `, matched to ${ln.matched}` : ", no catalogue match"}` };
+      }
+    }
+    setTip(best);
+  };
+  return (
+    <div className="spec-wrap">
+      <canvas ref={ref} className="spec-plot" role="img" onPointerMove={near} onPointerLeave={() => setTip(null)}
+        aria-label={`Spectrum from ${w[0]?.toFixed(0)} to ${w[w.length - 1]?.toFixed(0)} Angstrom with ${res?.lines.length ?? 0} detected lines. The line table follows.`} />
+      {tip && <span className="spec-tip" style={{ left: tip.x }}>{tip.text}</span>}
+    </div>
+  );
 }
 
 export function Spectra() {
@@ -108,6 +170,7 @@ export function Spectra() {
   const z = res?.redshift;
   return (
     <section className="section">
+      <Scene name="sky" />
       <PageHead eyebrow="Spectra" title="See the light" accent="in more detail.">
         Paste or upload a one-dimensional spectrum. AKASH finds emission and absorption lines and checks whether one redshift makes
         several of them match known lines. A redshift here is a candidate with its supporting lines, never a confirmed value,
@@ -122,7 +185,7 @@ export function Spectra() {
             <input type="file" accept=".csv,.txt,.dat,text/plain,text/csv" hidden onChange={(e) => void onFile(e.target.files?.[0])} /></label>
           <button className="btn" onClick={useSample}>Use the synthetic sample</button>
           <button className="btn primary" onClick={() => void analyze()} disabled={busy || !parsed || typeof parsed === "string"}>
-            {busy ? "Analysing" : "Analyse"}</button>
+            {busy ? <><Spinner />Analysing</> : "Analyse"}</button>
         </div>
         {typeof parsed === "string" && <p className="notice bad" role="alert">{parsed}</p>}
         {err && <p className="notice bad" role="alert">{err}</p>}

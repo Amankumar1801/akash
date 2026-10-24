@@ -1,6 +1,7 @@
 /** The AKASH mark: an amber orbit ring cut by a vertical axis, with a four-point stellar glint at
  *  its centre and a small marker on the orbit. Pure SVG geometry, colours come from design tokens
- *  so it follows the red-lamp theme. */
+ *  so it follows the red-lamp theme. It is complete when static; the classes below only add
+ *  motion (idle drift, hover highlight, a sweep while real work is running). */
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
     <svg className="logo-mark" width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" focusable="false">
@@ -12,10 +13,14 @@ export function LogoMark({ size = 32 }: { size?: number }) {
           <stop offset="1" stopColor="var(--ink)" stopOpacity="0" />
         </linearGradient>
       </defs>
-      <circle cx="20" cy="20" r="14.5" fill="none" stroke="var(--lamp)" strokeWidth="2.2" strokeLinecap="round"
-        strokeDasharray="78 13.1" transform="rotate(-62 20 20)" />
+      <g className="lm-ring">
+        <circle cx="20" cy="20" r="14.5" fill="none" stroke="var(--lamp)" strokeWidth="2.2" strokeLinecap="round"
+          strokeDasharray="78 13.1" transform="rotate(-62 20 20)" />
+        <circle className="lm-spark" cx="20" cy="20" r="14.5" fill="none" stroke="var(--ink)" strokeWidth="2.6"
+          strokeLinecap="round" strokeDasharray="7 84.1" transform="rotate(-62 20 20)" />
+      </g>
       <line x1="20" y1="1.5" x2="20" y2="38.5" stroke="url(#lg-axis)" strokeWidth="1.3" />
-      <path d="M20 11.2l1.5 6.9 6.9 1.9-6.9 1.9L20 28.8l-1.5-6.9-6.9-1.9 6.9-1.9z" fill="var(--ink)" />
+      <path className="lm-glint" d="M20 11.2l1.5 6.9 6.9 1.9-6.9 1.9L20 28.8l-1.5-6.9-6.9-1.9 6.9-1.9z" fill="var(--ink)" />
       <circle cx="31.6" cy="9.9" r="1.9" fill="var(--lamp)" />
     </svg>
   );

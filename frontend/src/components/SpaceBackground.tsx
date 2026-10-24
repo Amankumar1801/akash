@@ -25,11 +25,13 @@ const NEAR = field(23, 34, 0.7, 1.5, 0.35, 0.85, 5);
 export function SpaceBackground() {
   const far = useRef<HTMLCanvasElement>(null);
   const near = useRef<HTMLCanvasElement>(null);
+  const grid = useRef<HTMLDivElement>(null);
+  const glow = useRef<HTMLDivElement>(null);
   const tick = useThemeTick();
 
   useEffect(() => {
-    const a = far.current, b = near.current;
-    if (!a || !b) return;
+    const a = far.current, b = near.current, g = grid.current, lit = glow.current;
+    if (!a || !b || !g || !lit) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     const fine = window.matchMedia("(pointer: fine)");
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -64,20 +66,28 @@ export function SpaceBackground() {
       }
       ctx.globalAlpha = 1;
     };
-    const move = (e: PointerEvent) => { px = (e.clientX / window.innerWidth - 0.5) * 2; py = (e.clientY / window.innerHeight - 0.5) * 2; };
+    // Over form controls the scene holds still, so nothing drifts under a cursor that is aiming.
+    const move = (e: PointerEvent) => {
+      if ((e.target as Element | null)?.closest?.("input, select, textarea, button, dialog")) return;
+      px = (e.clientX / window.innerWidth - 0.5) * 2; py = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
     const loop = (t: number) => {
       raf = requestAnimationFrame(loop);
       if (document.hidden || t - last < 33) return;
       last = t;
       drawNear(t, true);
       cx += (px - cx) * 0.06; cy += (py - cy) * 0.06;  // eased, a few pixels at most
-      a.style.transform = `translate3d(${(-cx * 4 - 30).toFixed(2)}px, ${(-cy * 4 - 30).toFixed(2)}px, 0)`;
-      b.style.transform = `translate3d(${(-cx * 10 - 30).toFixed(2)}px, ${(-cy * 10 - 30).toFixed(2)}px, 0)`;
+      // depth: far stars move least, near stars most (a few px), the grid a hair, the haze glow broadly
+      a.style.transform = `translate3d(${(-cx * 3 - 30).toFixed(2)}px, ${(-cy * 3 - 30).toFixed(2)}px, 0)`;
+      b.style.transform = `translate3d(${(-cx * 8 - 30).toFixed(2)}px, ${(-cy * 8 - 30).toFixed(2)}px, 0)`;
+      g.style.transform = `translate3d(${(-cx * 2).toFixed(2)}px, ${(-cy * 2).toFixed(2)}px, 0)`;
+      lit.style.transform = `translate3d(${((cx + 1) / 2 * window.innerWidth - 300).toFixed(1)}px, ${((cy + 1) / 2 * window.innerHeight - 300).toFixed(1)}px, 0)`;
     };
     const start = () => {
       cancelAnimationFrame(raf);
       size(); drawFar(); drawNear(0, false);
       a.style.transform = b.style.transform = "translate3d(-30px, -30px, 0)";
+      g.style.transform = "none"; lit.style.transform = `translate3d(${window.innerWidth * 0.62 - 300}px, ${window.innerHeight * 0.3 - 300}px, 0)`;
       if (!reduce.matches) raf = requestAnimationFrame(loop);
     };
     start();
@@ -95,10 +105,13 @@ export function SpaceBackground() {
 
   return (
     <div className="space" aria-hidden="true">
+      <div className="space-img" />
       <div className="space-haze" />
-      <div className="space-grid" />
+      <div ref={grid} className="space-grid" />
+      <div ref={glow} className="space-glow" />
       <canvas ref={far} className="space-far" />
       <canvas ref={near} className="space-near" />
+      <i className="space-meteor m1" /><i className="space-meteor m2" />
     </div>
   );
 }
