@@ -7,7 +7,7 @@ Ambiguity is surfaced (AmbiguousIdentity), never silently resolved.
 
 from __future__ import annotations
 
-from akash_core.errors import AmbiguousIdentity, ObjectNotFound
+from akash_core.errors import AmbiguousIdentity, ObjectNotFound, ProviderError, ValidationFailure
 from akash_core.schemas import AstronomicalObject, CrossmatchLink, ObjectAlias
 
 from ..identifiers import ParsedIdentifier, parse_identifier
@@ -39,7 +39,7 @@ class Resolver:
         p = parse_identifier(query)
         if p.kind == "alias" and p.namespace and p.identifier:
             if cached := self.repo.find_by_alias(p.namespace, p.identifier):
-                return cached
+                return self._heal_gaia(cached)
         cand = self._simbad_candidates(p)
         if not cand:
             raise ObjectNotFound(f"no object found for {query!r}")
@@ -47,6 +47,35 @@ class Resolver:
         return self._build_and_persist(chosen)
 
     # ---- internals ----
+    def _heal_gaia(self, obj: AstronomicalObject) -> AstronomicalObject:
+        """An object saved while Gaia was unreachable or ambiguous has no Gaia DR3 anchor and,
+        because identity is cached, would never get one: every later investigation would lack
+        stellar parameters. Retry the cross-match; on any failure keep the object as it is."""
+        if self.gaia is None or obj.alias("GAIA_DR3"):
+            return obj
+        try:
+            rows, _ = self.gaia.cone_for_object_epoch(
+                obj.ra_deg, obj.dec_deg, obj.pm_ra_mas_yr, obj.pm_dec_mas_yr, obj.epoch,
+                GAIA_MATCH_RADIUS_ARCSEC)
+        except ProviderError:
+            return obj
+        if not rows or not clear_winner([r["_sep_arcsec"] for r in rows]):
+            return obj
+        best = rows[0]
+        alias = ObjectAlias(namespace="GAIA_DR3", identifier=str(best["source_id"]),
+                            source="gaia_crossmatch", confidence=0.9 if len(rows) == 1 else 0.7)
+        healed = obj.model_copy(update={"aliases": [*obj.aliases, alias],
+                                        "anchor_namespace": "GAIA_DR3"})
+        try:
+            self.repo.save_object(healed)
+        except ValidationFailure:  # that Gaia id already belongs to another object
+            return obj
+        self.repo.add_link(CrossmatchLink(
+            object_id=obj.object_id, other_namespace="GAIA_DR3", other_identifier=alias.identifier,
+            separation_arcsec=float(best["_sep_arcsec"]), method="gaia_cone_pm_propagated",
+            n_candidates=len(rows)))
+        return healed
+
     def _simbad_candidates(self, p: ParsedIdentifier) -> list[SimbadObject]:
         if p.kind == "coords":
             assert p.ra_deg is not None and p.dec_deg is not None
@@ -78,7 +107,7 @@ class Resolver:
         # reuse an existing object if any alias is already known (keeps identity stable)
         for (ns, ident) in list(aliases):
             if existing := self.repo.find_by_alias(ns, ident):
-                return existing
+                return self._heal_gaia(existing)
 
         obj = AstronomicalObject(
             ra_deg=s.ra % 360.0, dec_deg=s.dec, epoch=2000.0,

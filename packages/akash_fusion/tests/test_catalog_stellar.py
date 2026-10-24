@@ -107,3 +107,18 @@ def test_neighbours_dilute_each_other():
         prof(Neighbor("a", 5.0, 14.0, 2.0), Neighbor("b", 6.0, 12.5, 0.5),
              Neighbor("c", 7.0, 12.5, 0.5)), 0.13)
     assert len(solo.capable) == 1 and all(n.source_id != "a" for n in crowded.capable)
+
+
+def test_radius_falls_back_to_flame_when_gspphot_is_empty():
+    from akash_fusion.stellar import _radius
+
+    assert _radius({"radius_gspphot": None, "radius_flame": 1.12}) == 1.12
+    assert _radius({"radius_gspphot": 0.9, "radius_flame": 1.12}) == 0.9
+    assert _radius({}) is None
+
+
+def test_gaia_evidence_claim_states_units_and_missing_values():
+    from akash_fusion.evidence import _fmt
+    assert _fmt(4890.4, 0, " K") == "4890 K"
+    assert _fmt(1.2031, 2, " Rsun") == "1.20 Rsun"
+    assert _fmt(None, 2, " Rsun") == "unavailable"

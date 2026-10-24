@@ -79,6 +79,12 @@ def _f(x: Any) -> float | None:
     return v if math.isfinite(v) else None
 
 
+def _radius(v: dict[str, Any]) -> float | None:
+    """GSP-Phot radius, else the FLAME radius (both from Gaia's astrophysical-parameters table)."""
+    r = _f(v.get("radius_gspphot"))
+    return r if r is not None else _f(v.get("radius_flame"))
+
+
 class StellarService:
     def __init__(self, gaia: GaiaLike, search_radius_arcsec: float = 2 * TESS_PIXEL_ARCSEC) -> None:
         self.gaia, self.search_radius = gaia, search_radius_arcsec
@@ -91,7 +97,7 @@ class StellarService:
         v = rec.values
         prof = StellarProfile(
             str(v.get("source_id")), _f(v.get("phot_g_mean_mag")), _f(v.get("teff_gspphot")),
-            _f(v.get("logg_gspphot")), _f(v.get("radius_gspphot")), _f(v.get("ruwe")),
+            _f(v.get("logg_gspphot")), _radius(v), _f(v.get("ruwe")),
             star_record=rec)
         rows, _ = self.gaia.cone_for_object_epoch(
             obj.ra_deg, obj.dec_deg, obj.pm_ra_mas_yr, obj.pm_dec_mas_yr, obj.epoch,

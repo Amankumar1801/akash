@@ -201,14 +201,19 @@ def add_catalog_evidence(rec: EvidenceRecorder, records: list[CatalogRecord],
                 [rec.catalog_prov(r) for r in records])
 
 
+def _fmt(v: float | None, nd: int, unit: str) -> str:
+    return "unavailable" if v is None else f"{v:.{nd}f}{unit}"
+
+
 def add_stellar_evidence(rec: EvidenceRecorder, prof: StellarProfile,
                          cont: ContaminationAssessment | None) -> None:
     creator = _tool("gaia-enrichment", "gaia-dr3")
     if prof.star_record is not None:
         sp = rec.catalog_prov(prof.star_record)
         rec.add("gaia:params", EvidenceChannel.CROSS_SURVEY, Direction.NEUTRAL,
-                f"Gaia DR3 {prof.source_id}: Teff={prof.teff}, R={prof.radius_rsun}, "
-                f"logg={prof.logg}, G={prof.g_mag}",
+                f"Gaia DR3 {prof.source_id}: Teff={_fmt(prof.teff, 0, ' K')}, "
+                f"R={_fmt(prof.radius_rsun, 2, ' Rsun')}, logg={_fmt(prof.logg, 2, ' (cgs)')}, "
+                f"G={_fmt(prof.g_mag, 2, ' mag')}",
                 {"source": "Gaia DR3", "teff": prof.teff, "radius_rsun": prof.radius_rsun,
                  "logg": prof.logg, "g_mag": prof.g_mag}, ReliabilityClass.ARCHIVE_CURATED,
                 creator, [sp])

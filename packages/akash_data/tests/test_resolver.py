@@ -1,3 +1,4 @@
+import httpx
 import pytest
 from akash_core.errors import AmbiguousIdentity, ObjectNotFound
 from akash_data.identity.resolver import Resolver
@@ -85,3 +86,41 @@ def test_gaia_ambiguous_match_recorded_but_not_adopted(repo):
     assert o.alias("GAIA_DR3") is None and o.anchor_namespace == "POSITION"
     link = repo.links_for(o.object_id)[0]
     assert link.ambiguous and link.n_candidates == 2
+
+
+def _resolver_with_gaia(repo, gaia_handler):
+    def simbad(req):
+        q = form(req)["query"]
+        if "FROM ident WHERE oidref" in q:
+            return json_resp(tap_json(["id"], [["star"]]))
+        return json_resp(tap_json(SIM_COLS, [[5, "star", 100.0, 0.0, None, None, None]]))
+
+    return Resolver(repo, SimbadClient(TapClient(client_for(simbad), "http://s")),
+                    GaiaProvider(client_for(gaia_handler)))
+
+
+def test_object_cached_without_gaia_anchor_is_healed_on_next_resolve(repo):
+    state = {"rows": [[1, 100.0, 0.0001], [2, 100.0, 0.0002]]}  # ambiguous the first time
+    r = _resolver_with_gaia(
+        repo, lambda req: json_resp(tap_json(["source_id", "ra", "dec"], state["rows"])))
+    first = r.resolve("star")
+    assert first.alias("GAIA_DR3") is None
+    state["rows"] = [[77, 100.0, 0.0001]]  # Gaia now returns one clear match
+    again = r.resolve("star")
+    assert again.object_id == first.object_id
+    assert again.alias("GAIA_DR3") == "77" and again.anchor_namespace == "GAIA_DR3"
+    assert repo.find_by_alias("GAIA_DR3", "77") is not None  # persisted, not just returned
+
+
+def test_heal_keeps_object_when_gaia_is_down(repo):
+    state = {"down": False}
+
+    def gaia(req):
+        if state["down"]:
+            return httpx.Response(500)
+        return json_resp(tap_json(["source_id", "ra", "dec"], []))
+
+    r = _resolver_with_gaia(repo, gaia)
+    first = r.resolve("star")
+    state["down"] = True
+    assert r.resolve("star").object_id == first.object_id
