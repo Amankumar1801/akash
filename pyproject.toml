@@ -2,6 +2,7 @@
 name = "akash"
 version = "0.0.1"
 description = "AKASH: AI Astronomical Discovery Engine (workspace root)"
+license = { text = "MIT" }
 requires-python = ">=3.11"
 dependencies = ["akash-core", "akash-api", "akash-data", "akash-provenance", "akash-science", "akash-ml", "akash-fusion", "akash-agent", "akash-report", "akash-eval"]
 
