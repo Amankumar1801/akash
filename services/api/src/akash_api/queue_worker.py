@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import signal
+import socket
 import threading
 import uuid
 from collections.abc import Callable
@@ -28,7 +29,7 @@ def run_worker(services: AppServices, worker_id: str | None = None, *, max_jobs:
                run: Callable[[AppServices, str], None] | None = None) -> int:
     """Poll, claim and run jobs until `stop` is set or `max_jobs` have been handled."""
     s = services.settings
-    wid = worker_id or f"{os.uname().nodename}-{os.getpid()}-{uuid.uuid4().hex[:6]}"
+    wid = worker_id or f"{socket.gethostname()}-{os.getpid()}-{uuid.uuid4().hex[:6]}"
     stop = stop or threading.Event()
     runner = run or (lambda sv, jid: execute_job(sv, jid, claimed=True))
     handled = 0
