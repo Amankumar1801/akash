@@ -99,9 +99,11 @@ class DataLayerLightCurveSource:
         res = svc.ingest(obj, ObsFilter(segments=tuple(segments) or None,  # type: ignore[attr-defined]
                                         max_observations=max_observations))
         if not res.observations:
+            why = "; ".join(f"{n}: {r}" for n, r in [*res.errors, *res.quarantined][:3])
             raise ValidationFailure(
                 f"no usable {mission} light curves for this object "
-                f"({len(res.errors)} errors, {len(res.quarantined)} quarantined)")
+                f"({len(res.errors)} errors, {len(res.quarantined)} quarantined)"
+                + (f". First reasons: {why}" if why else ""))
         lcs = [NormalizedLightCurve.from_npz_bytes(
             self.ctx.artifacts.get(self.ctx.prov.get(o.provenance_id).sha256 or ""))
             for o in res.observations]

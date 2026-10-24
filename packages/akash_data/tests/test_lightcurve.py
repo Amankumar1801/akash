@@ -64,3 +64,37 @@ def test_validation_flags_unusual_cadence_and_bad_quality():
     r = validate_lightcurve(parse_lightcurve_fits(
         make_fits(cadence_s=77.0, quality_bad_frac=0.9, nan_time=0), TESS))
     assert r.ok and any("cadence" in w for w in r.warnings) and any("unflagged" in w for w in r.warnings)
+
+
+def test_kepler_quality_column_is_sap_quality():
+    """Regression: real Kepler files name the bitmask SAP_QUALITY, not QUALITY (Kepler-10 b)."""
+    lc = parse_lightcurve_fits(
+        make_fits("Kepler", cadence_s=1765.5, ident=11904151, quality_bad_frac=0.5, nan_time=0),
+        KEPLER)
+    assert (lc.native_quality == 1).sum() == 250
+
+
+def test_missing_quality_column_names_both_spellings():
+    import io
+
+    from astropy.io import fits
+    hd = fits.open(io.BytesIO(make_fits("Kepler", cadence_s=1765.5)))
+    cols = [c for c in hd[1].columns if c.name != "SAP_QUALITY"]
+    tab = fits.BinTableHDU.from_columns(cols, header=hd[1].header)
+    buf = io.BytesIO()
+    fits.HDUList([hd[0], tab]).writeto(buf)
+    with pytest.raises(ValidationFailure, match="SAP_QUALITY/QUALITY"):
+        parse_lightcurve_fits(buf.getvalue(), KEPLER)
+
+
+def test_tess_still_requires_quality():
+    import io
+
+    from astropy.io import fits
+    hd = fits.open(io.BytesIO(make_fits()))
+    cols = [c for c in hd[1].columns if c.name != "QUALITY"]
+    tab = fits.BinTableHDU.from_columns(cols, header=hd[1].header)
+    buf = io.BytesIO()
+    fits.HDUList([hd[0], tab]).writeto(buf)
+    with pytest.raises(ValidationFailure, match="missing table columns"):
+        parse_lightcurve_fits(buf.getvalue(), TESS)
