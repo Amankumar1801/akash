@@ -5,8 +5,9 @@ import { SCENARIOS } from "../api/demo";
 import { useApi } from "../api/settings";
 import type { InvestigationDetail, ObjectOut } from "../api/types";
 import { DirGlyph } from "../components/Glyphs";
-import { BodyArt } from "../components/BodyArt";
-import { Loader } from "../components/Loader";
+import { CaseArt } from "../components/Scene";
+import { Loader, Spinner } from "../components/Loader";
+import { useActivity } from "../lib/activity";
 import { Sky } from "../components/Sky";
 import { ago } from "../lib/format";
 import { TRIAGE } from "../lib/labels";
@@ -21,6 +22,7 @@ export function Home() {
   const [err, setErr] = useState("");
   const [log, setLog] = useState<Entry[] | null>(null);
   const [logErr, setLogErr] = useState("");
+  useActivity(busy);   // the logo sweeps only while a submitted investigation is really being created
 
   useEffect(() => {
     let live = true;
@@ -39,11 +41,12 @@ export function Home() {
     return () => { live = false; };
   }, [api]);
 
+  const [depth, setDepth] = useState("2");   // how many TESS sectors to download and search
   const go = async (query: string) => {
     if (!query.trim() || busy) return;
     setBusy(true); setErr("");
     try {
-      const job = await api.createInvestigation({ query: query.trim(), mission: "tess", mode: "deep" });
+      const job = await api.createInvestigation({ query: query.trim(), mission: "tess", mode: "deep", max_observations: Number(depth) });
       nav(`/investigations/${job.investigation_id}`);
     } catch (e) { setErr(explain(e)); setBusy(false); }
   };
@@ -53,7 +56,17 @@ export function Home() {
     <>
       <section className="hero" aria-labelledby="hero-h">
         <Sky />
-        <div className="hero-orb" aria-hidden="true"><i /></div>
+        <div className="hero-orb" aria-hidden="true">
+          <svg viewBox="0 0 400 400" className="orb-rings" focusable="false">
+            <ellipse cx="200" cy="200" rx="188" ry="52" className="orb-orbit" transform="rotate(-18 200 200)" />
+            <g className="orb-scan"><circle cx="200" cy="200" r="176" className="orb-scan-ring" /></g>
+            <circle cx="200" cy="200" r="150" className="orb-fine" />
+            <circle cx="200" cy="200" r="196" className="orb-fine" strokeDasharray="1 7" />
+          </svg>
+          {/* A looping solar eclipse: the moon crosses the sun, totality, then it passes and repeats. Pure decoration. */}
+          <i className="orb-sun" /><i className="orb-corona" /><i className="orb-moon" onAnimationIteration={(e) => e.currentTarget.style.setProperty("--moon-dy", `${(Math.random() * 10 - 5).toFixed(1)}%`)} />
+        </div>
+        <div className="hero-horizon" aria-hidden="true" />
         <div className="hero-inner">
           <span className="eyebrow">Explore</span>
           <h1 id="hero-h">Name a star. See what its light <em>can and can&apos;t tell you.</em></h1>
@@ -62,14 +75,32 @@ export function Home() {
             finding as its own line of evidence. Nothing is averaged into a score.
           </p>
           <form className="search" onSubmit={submit}>
-            <div className="search-box">
+            <div className={`search-box${busy ? " busy" : ""}`}>
               <label htmlFor="q" className="visually-hidden">Star name or catalog ID</label>
               <input id="q" className="field" value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" spellCheck={false}
                 placeholder={settings.mode === "demo" ? "TIC 900000001" : "TIC 261136679, KIC 8462852, or a name"} />
-              <button className="btn primary" type="submit" disabled={busy || !q.trim()}>{busy ? "Starting" : "Investigate"}</button>
+              <button className="btn primary" type="submit" disabled={busy || !q.trim()}>{busy ? <><Spinner />Starting</> : "Investigate"}</button>
+            </div>
+            <div className="depth-row">
+              <label htmlFor="depth" className="label-mono">Data to use</label>
+              <select id="depth" className="field" value={depth} onChange={(e) => setDepth(e.target.value)} disabled={busy}>
+                <option value="2">Quick look: 2 sectors</option>
+                <option value="4">Standard: 4 sectors</option>
+                <option value="10">Everything: up to 10 sectors (can take 30 minutes)</option>
+              </select>
             </div>
             {err && <p className="err" role="alert" style={{ marginTop: 8 }}>{err}</p>}
           </form>
+          <aside className="stats-panel" aria-label="Your logbook at a glance">
+            <span className="label-mono">Your logbook</span>
+            <dl>
+              <div><dt>Investigations</dt><dd className="num">{log ? log.length : "\u2014"}</dd></div>
+              <div><dt>Finished</dt><dd className="num">{log ? log.filter((e) => e.d.status === "succeeded").length : "\u2014"}</dd></div>
+              <div><dt>Signals to review</dt><dd className="num">{log ? log.filter((e) => e.d.assessment?.triage_category === "new_signal_review").length : "\u2014"}</dd></div>
+              <div><dt>No periodic signal</dt><dd className="num">{log ? log.filter((e) => e.d.outcome === "no_transit_signal").length : "\u2014"}</dd></div>
+            </dl>
+            <p className="muted">Counts the latest 12 of your investigations.</p>
+          </aside>
           {settings.mode === "demo" && (
             <div>
               <p className="muted label-mono">Or start from one of eight synthetic cases</p>
@@ -77,7 +108,7 @@ export function Home() {
                 {SCENARIOS.map((s) => (
                   <li key={s.id}>
                     <button onClick={() => void go(`TIC ${900000000 + s.id}`)} disabled={busy}>
-                      <BodyArt seed={s.id} />
+                      <CaseArt seed={s.id} />
                       <span className="id">TIC {900000000 + s.id}</span>
                       <span className="t">{s.title}</span><span className="s">{s.summary}</span>
                     </button>

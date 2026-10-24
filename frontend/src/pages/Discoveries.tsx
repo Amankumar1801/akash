@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { DiscoveryCard, DiscoveryPage, FeedQuery, FeedSort, TriageCategory } from "../api/types";
@@ -6,7 +6,9 @@ import { DiscoveryCardView } from "../components/DiscoveryCardView";
 import { toCsv } from "../lib/csv";
 import { toFeedQuery, type Interpretation } from "../lib/nlquery";
 import { TRIAGE } from "../lib/labels";
+import { Loader } from "../components/Loader";
 import { PageHead } from "../components/PageHead";
+import { Scene } from "../components/Scene";
 
 const SORTS: { v: FeedSort; t: string }[] = [
   { v: "triage", t: "Review order" }, { v: "anomaly", t: "Anomaly percentile" },
@@ -31,6 +33,9 @@ export function Discoveries() {
   const [picked, setPicked] = useState<string[]>([]);
   const [ask, setAsk] = useState("");
   const [interp, setInterp] = useState<Interpretation | null>(null);
+  const [intro, setIntro] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const seen = useRef(false);
 
   async function search(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +54,16 @@ export function Discoveries() {
     return () => { live = false; };
   }, [api, q, page]);
   useEffect(() => load(), [load]);
+  // First arrival of results: records settle in with a stagger (once). Later changes (filters, review)
+  // only get a brief fade of the list, never the entrance again.
+  useEffect(() => {
+    if (!data) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!seen.current) {
+      seen.current = true;
+      if (!calm) { setIntro(true); const id = window.setTimeout(() => setIntro(false), 1400); return () => window.clearTimeout(id); }
+    } else if (!calm) listRef.current?.animate([{ opacity: 0.5 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
+  }, [data]);
 
   const set = (patch: Partial<FeedQuery>) => { setQ({ ...q, ...patch }); setPage(0); };
   const toggleCat = (c: TriageCategory) => {
@@ -77,6 +92,7 @@ export function Discoveries() {
   const cmp = data?.items.filter((c) => picked.includes(c.investigation_id)) ?? [];
   return (
     <section className="section">
+      <Scene name="candidates" />
       <PageHead eyebrow="Candidates" title="Signals worth" accent="a closer look.">
         Finished investigations, ordered for human review. The order is a fixed, stated rule. It is not a score and it is not a
         likelihood that anything is real.
@@ -122,7 +138,7 @@ export function Discoveries() {
       </div>
 
       {err && <p className="notice bad" role="alert" style={{ marginTop: 14 }}>{err}</p>}
-      {!data && !err && <div className="skel" style={{ height: 160, marginTop: 18 }} />}
+      {!data && !err && <Loader variant="inline" label="Reading the candidate queue" />}
       {data && (
         <>
           <p className="muted" style={{ marginTop: 14, fontSize: 13.5 }} aria-live="polite">
@@ -131,9 +147,9 @@ export function Discoveries() {
             <button className="linkish" onClick={exportCsv} disabled={!data.items.length}>Export this page as CSV</button>
           </p>
           {data.items.length === 0 && <p className="empty">Nothing matches. Investigations that found no signal are not candidates, and each object shows only its latest investigation.</p>}
-          <div className="dlist">
-            {data.items.map((c) => (
-              <DiscoveryCardView key={c.investigation_id} c={c} busy={busy}
+          <div ref={listRef} className={`dlist${intro ? " reveal" : ""}`}>
+            {data.items.map((c, i) => (
+              <DiscoveryCardView key={c.investigation_id} c={c} busy={busy} index={i}
                 picked={picked.includes(c.investigation_id)}
                 onPick={() => setPicked((p) => p.includes(c.investigation_id) ? p.filter((x) => x !== c.investigation_id) : [...p.slice(-2), c.investigation_id])}
                 onReviewed={() => void markReviewed(c)} onReport={() => void report(c)} />))}

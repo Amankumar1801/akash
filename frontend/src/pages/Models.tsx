@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { explain } from "../api/client";
 import { useApi } from "../api/settings";
 import type { ModelDetail, ModelOut } from "../api/types";
+import { Loader } from "../components/Loader";
 import { PageHead } from "../components/PageHead";
+import { Scene } from "../components/Scene";
 
 const key = (m: ModelOut) => `${m.name}/${m.version}`;
 const show = (v: unknown): string => (v !== null && typeof v === "object" ? JSON.stringify(v, null, 2) : String(v));
@@ -32,15 +34,16 @@ export function Models() {
 
   return (
     <section className="section">
+      <Scene name="models" />
       <PageHead eyebrow="Models" title="What the" accent="models say.">
         Every prediction records the model version, the data it learned from and the feature version, so a result can be reproduced.
         Versions are immutable once saved. Select a row to read its recorded metadata and model card.
       </PageHead>
       {err && <p className="notice bad" style={{ marginTop: 16 }}>{err}</p>}
-      {!rows && !err && <div className="skel" style={{ height: 100, marginTop: 16 }} />}
+      {!rows && !err && <Loader variant="inline" label="Reading the registry" />}
       {rows && rows.length === 0 && <p className="empty">No models are saved in the registry yet. Train one with scripts/train_transit.py and it will appear here.</p>}
       {rows && rows.length > 0 && (
-        <div className="scroll-x"><table className="tbl">
+        <div className="scroll-x"><table className="tbl enter">
           <thead><tr><th>Model</th><th>Version</th><th>Saved</th><th>Features</th><th>Training data hash</th><th>Rows</th></tr></thead>
           <tbody>{rows.map((m) => (
             <tr key={key(m)} tabIndex={0} aria-selected={open ? key(open) === key(m) : false}
@@ -53,10 +56,10 @@ export function Models() {
         </table></div>
       )}
       {open && (
-        <article className="model-detail" aria-label={`${open.name} ${open.version}`}>
+        <article key={key(open)} className="model-detail" aria-label={`${open.name} ${open.version}`}>
           <h3>{open.name} {open.version}</h3>
           {derr && <p className="notice bad" role="alert">{derr}</p>}
-          {!detail && !derr && <div className="skel" style={{ height: 80 }} />}
+          {!detail && !derr && <Loader variant="inline" label="Reading metadata" />}
           {detail && (<>
             <dl className="dgrid">{Object.entries(detail.metadata).map(([k, v]) => (
               <div key={k}><dt>{k.replace(/_/g, " ")}</dt><dd>{typeof v === "object" && v !== null ? <pre className="meta-pre">{show(v)}</pre> : show(v)}</dd></div>))}</dl>

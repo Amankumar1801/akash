@@ -4,6 +4,7 @@ import { useApi } from "../api/settings";
 import imageSample from "../api/image_sample.json";
 import type { ImageRequest, ImageResult } from "../api/types";
 import { b64ToFloat32, fitsPayload, float32ToB64, luminance, toRgba, type Stretch } from "../lib/image";
+import { Spinner } from "../components/Loader";
 import { PageHead } from "../components/PageHead";
 
 const MAX_DECODED_SIDE = 256;
@@ -90,10 +91,18 @@ export function ImageViewer() {
         <label className="btn">Open an image
           <input type="file" accept=".fits,.fit,.fts,image/png,image/jpeg" hidden onChange={(e) => void onFile(e.target.files?.[0])} /></label>
         <button className="btn" onClick={useSample}>Use the synthetic sample</button>
-        <button className="btn primary" onClick={() => void analyse()} disabled={!req || busy}>{busy ? "Analysing" : "Analyse"}</button>
+        <button className="btn primary" onClick={() => void analyse()} disabled={!req || busy}>{busy ? <><Spinner />Analysing</> : "Analyse"}</button>
         {req && <span className="muted">{label || "image ready"}</span>}
       </div>
       {err && <p className="notice bad" role="alert" style={{ marginTop: 12 }}>{err}</p>}
+
+      {!(res && px) && (
+        <figure className="img-idle">
+          <img src="/assets/space/images-spiral-galaxy.webp" alt="Illustration of a spiral galaxy. Not an observation." width={1000} height={600}
+               decoding="async" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <figcaption className="muted">Illustration only. Open an image, or use the synthetic sample, to measure real pixels.</figcaption>
+        </figure>
+      )}
 
       {res && px && (
         <div style={{ marginTop: 18 }}>
@@ -114,7 +123,7 @@ export function ImageViewer() {
               {overlay && s && (
                 <svg viewBox={`0 0 ${res.preview.width} ${res.preview.height}`} className="img-overlay" aria-hidden="true">
                   {[s.r20_px, s.r50_px, s.r80_px].map((r, i) => (
-                    <circle key={i} cx={s.centroid_xy[0] / k + 0.5} cy={s.centroid_xy[1] / k + 0.5} r={r / k} fill="none"
+                    <circle key={i} className="img-ring" style={{ animationDelay: `${450 + i * 260}ms` }} cx={s.centroid_xy[0] / k + 0.5} cy={s.centroid_xy[1] / k + 0.5} r={r / k} fill="none"
                             stroke="var(--lamp)" strokeWidth={0.6} strokeDasharray={i === 1 ? undefined : "2 2"} />))}
                   <path d={`M${s.centroid_xy[0] / k - 2} ${s.centroid_xy[1] / k + 0.5}h4M${s.centroid_xy[0] / k + 0.5} ${s.centroid_xy[1] / k - 2}v4`}
                         stroke="var(--supports)" strokeWidth={0.6} />
