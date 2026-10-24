@@ -15,7 +15,10 @@ def test_put_is_idempotent_and_content_addressed(artifacts):
 def test_tamper_detected(artifacts):
     ref = artifacts.put(b"data", "raw")
     from pathlib import Path
-    Path(ref.uri.removeprefix("file://")).write_bytes(b"corrupt")
+    from urllib.parse import urlparse
+    from urllib.request import url2pathname
+    # a file URI is file:///C:/dir/x on Windows and file:///dir/x elsewhere; url2pathname handles both
+    Path(url2pathname(urlparse(ref.uri).path)).write_bytes(b"corrupt")
     with pytest.raises(IntegrityError):
         artifacts.get(ref.sha256)
 

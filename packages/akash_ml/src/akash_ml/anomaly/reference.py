@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from akash_science.lightcurve.types import F64
@@ -31,7 +31,20 @@ from akash_science.lightcurve.variability import (
 from sklearn.ensemble import IsolationForest
 from sklearn.neighbors import LocalOutlierFactor, NearestNeighbors
 
-from .autoencoder import Autoencoder
+if TYPE_CHECKING:  # torch is optional: the autoencoder is imported only when one is used
+    from .autoencoder import Autoencoder
+
+
+def _autoencoder_cls() -> type[Autoencoder]:
+    try:
+        from .autoencoder import Autoencoder as cls
+    except ModuleNotFoundError as e:
+        if e.name != "torch":
+            raise
+        raise RuntimeError("This anomaly reference uses the autoencoder, which needs PyTorch. "
+                           "Install it with: uv sync --all-packages --extra torch") from e
+    return cls
+
 
 DETECTORS = ("iforest", "lof", "ae_recon", "latent_knn")
 CALIB_FRACTION = 0.2
@@ -124,7 +137,7 @@ class ReferencePopulation:
         self._iso = IsolationForest(n_estimators=300, random_state=self.seed).fit(fit_x)
         self._lof = LocalOutlierFactor(n_neighbors=20, novelty=True).fit(fit_x)
         if self.use_ae:
-            self._ae = pretrained_ae or Autoencoder(self.seed).fit(self.reps[~hold],
+            self._ae = pretrained_ae or _autoencoder_cls()(self.seed).fit(self.reps[~hold],
                                                                    self.reps[hold])
             self._knn = NearestNeighbors(n_neighbors=K_LATENT).fit(self._ae.embed(self.reps[~hold]))
         raw = self._raw(self.features[hold], self.reps[hold])
@@ -210,7 +223,7 @@ class ReferencePopulation:
         ref = cls(meta["ref_id"], meta["criteria"], meta["seed"], meta["use_ae"], meta["aggregate"])
         ref.features, ref.reps, ref.star_ids = z["features"], z["reps"], z["star_ids"]
         ref.artifact_metrics = {k[4:]: z[k] for k in z.files if k.startswith("art_")}
-        ae = (Autoencoder.from_bytes((d / "autoencoder.pt").read_bytes(), meta["seed"])
+        ae = (_autoencoder_cls().from_bytes((d / "autoencoder.pt").read_bytes(), meta["seed"])
               if meta["use_ae"] else None)
         ref._fit_models(pretrained_ae=ae)  # IF/LOF/kNN refit deterministically; AE reused
         if ref.fingerprint() != meta["fingerprint"]:
