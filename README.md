@@ -1,55 +1,125 @@
 # AKASH: AI Astronomical Discovery Engine
 
-Evidence-assembly platform for astronomical objects: real data, scientific ML, anomaly
-detection, cross-survey evidence, explainability, uncertainty, and provenance.
-**AKASH assists investigation; it does not independently establish discoveries.**
+> **Name a star. See what its light can and can't tell you.**
 
-## Status
-- **Phase 0** complete: workspace, CI, core schemas.
-- **Phase 1** complete in code (identity resolver, SIMBAD/Gaia/Exoplanet Archive/MAST TESS+Kepler
-  providers, caching, retries, validation, provenance), **pending live verification** against the
-  real archives: `uv run pytest -m network tests/live` (see ADR 0002).
-- **Phase 2** complete on **synthetic** data (quality, detrending, BLS search, views, vetting v1,
-  injection-recovery; see ADR 0003 and docs/evaluation). Real-data sensitivity is a Phase 10
-  measurement.
-- **Phase 3** complete on **synthetic** data (classifier system, grouped frozen splits,
-  calibration, conformal sets, OOD, registry, model card; ADR 0004). Real training needs the Kepler
-  DR25 table + light curves: see `scripts/build_kepler_training_set.py`, `scripts/train_transit.py`.
-- **Phase 4** complete on **synthetic** data (variability/artifact features, 4-detector ensemble with
-  held-out calibration, artifact gate, severity ranking; ADR 0005, docs/evaluation). A real reference
-  population must be curated: `scripts/build_anomaly_reference.py`.
-- **Phase 5** complete on **synthetic** data with fake catalogs (typed evidence with provenance, Gaia
-  enrichment + contamination, period-based catalog matching, rule-based triage, evidence matrix,
-  `investigate()`; ADR 0006, docs/evaluation/phase5-investigation-scenarios.md). Live archives untested.
-- **Phase 6** complete on in-process fakes (FastAPI service: object search, observations, async
-  investigations with durable jobs, SSE + polling progress, cancel/idempotency, API-key auth with
-  roles, rate limits, audit log, model registry endpoints; see ADR 0007). Not tested against real
-  Celery/Redis/Postgres or live archives.
-- **Phase 7** (first slice) complete: React frontend in `frontend/` (logbook, live investigation view, light/folded curves, separate readouts, evidence strip, provenance graph, models; ADR 0008). Runs on synthetic demo data or the Phase 6 API; the live path is tested only against a local HTTP server.
-- **Phase 8** complete: read-only, bounded research agent (`packages/akash_agent`, ADR 0009) with prompt-injection defences, a citation verifier and a deterministic fallback; `POST /v1/investigations/{id}/ask` and an Ask tab. No live LLM has been exercised; the provider is tested against a mock transport only.
-- **Phase 9** complete: deterministic 13-section scientific reports (`packages/akash_report`, ADR 0010) with Markdown/HTML export, `POST /v1/reports` and a Report tab. Built from stored evidence only; no model writes any of it. No PDF output; the demo-mode report is a shorter client-side version.
-- **Phase 10** complete: injection-recovery experiment lab (`packages/akash_eval`, `/v1/experiments`, Lab page) with Wilson intervals and explicit synthetic-noise caveats; metrics (`/v1/metrics`) and per-investigation traces; human review labels with an export for active learning (ADR 0011). Sensitivity is measured on synthetic noise only; metrics are per-process; nothing retrains automatically.
-- **Phase 11** complete (with one caveat): single-node deployment (ADR 0012, `docs/deploy.md`): fail-fast production preflight, `/v1/ready`, verified backup and restore, hardened API and web images, nginx with a strict CSP, production compose file, CI image build and smoke test. The images were not built here (no Docker daemon); the CI `images` job is their first real test. Scale-out (queue, Postgres, object store) is not built.
-- **Discovery feed and sky map** complete (ADR 0013): a candidate review queue with a published fixed ordering (no score), per-strand discovery cards, filters, side-by-side compare, review marking, report download, formula-safe CSV export, and an all-sky map of investigated objects. Feed scans at most 500 recent investigations; filters only, no natural-language search.
-- **Spectra, variability and model observatory** complete (ADR 0014): deterministic spectrum analysis (continuum, lines, candidate redshifts with supporting lines, never a confirmed value), stochastic-variability descriptors with a red-noise-aware periodicity test, `POST /v1/spectra/analyze`, `GET /v1/observations/{id}/variability`, a spectrum viewer, a variability panel and a model detail view. Validated on synthetic data only; the rest-line table has 16 lines.
-- **Queue, NL search and image viewer** (ADR 0015): a durable lease-based job queue with a separate worker process (single-node SQLite, no Postgres or object store yet), deterministic natural-language discovery search, and an image/galaxy photometry viewer. Synthetic validation only; `scripts/validate_real_targets.py` (see docs/real-data-validation.md) has not been run because the sandbox has no network.
+AKASH takes a star, fetches its real TESS or Kepler light curves, searches them for repeating dips,
+checks every finding against the catalogs and Gaia, and keeps **each piece of evidence as its own
+line**: measured facts, model predictions, anomaly scores, cross-survey checks and interpretation
+never get blended into one number.
+
+**AKASH assists investigation; it does not independently establish discoveries.** A model output is
+a prediction, an anomaly is a reason to look, and a candidate is not a planet.
+
+![Evidence rings: every finding is its own mark, nothing is averaged into a score](docs/img/evidence.jpg)
+
+<sub>Screenshots use the built-in synthetic demo data (fake star IDs), not real discoveries.</sub>
+
+## What it does
+
+| | |
+|---|---|
+| **Investigate** | Resolve a name (SIMBAD, Gaia DR3, TIC/KIC), pull TESS/Kepler light curves from MAST, clean, detrend and run a box-least-squares search, then vet the signal. |
+| **Evidence, not a score** | Readouts, vetting checks, classifier output, anomaly engine and catalog matches stay in separate channels, shown as an evidence ring and strip. |
+| **Honest uncertainty** | Calibrated probabilities with conformal sets, out-of-distribution flags, and an explicit "could not decide" mark. |
+| **Catalog and Gaia checks** | TOI/KOI/Exoplanet Archive matching by period, plus Gaia stellar parameters (Teff, radius, RUWE) and neighbour contamination. |
+| **Provenance** | Every step records its code version and a content hash; the chain is verifiable end to end. |
+| **Ask and Report** | A read-only research agent answers with citations (deterministic fallback, injection-hardened), and 13-section reports export as Markdown/HTML, built from stored evidence only. |
+| **Triage** | A candidate queue with a published, fixed review order (no hidden score), filters, compare view and an all-sky map. |
+| **Spectra and images** | Deterministic line/redshift candidates and galaxy photometry. |
+| **Models and Lab** | A versioned model registry with model cards, and an injection-recovery lab that measures the pipeline's own sensitivity. |
+
+<table><tr>
+<td><img src="docs/img/readouts.jpg" alt="Readouts: period, calibrated classifier, population percentile"></td>
+<td><img src="docs/img/provenance.jpg" alt="Provenance: hash-chained steps"></td>
+</tr></table>
+
+## Real-data results
+
+Run on live archives with `scripts/validate_real_targets.py` (details in
+[docs/real-data-validation.md](docs/real-data-validation.md)):
+
+| Target | Recovered | Result |
+|---|---|---|
+| WASP-18 b | 9970 ppm, SNR 389 | ok |
+| pi Men c | 279 ppm, SNR 32 | ok, with Gaia stellar checks passing (R = 1.20 Rsun, RUWE 0.81) |
+| TOI-270 c | 3596 ppm | ok (the hand-rounded reference is approximate) |
+| Kepler-10 b | | Fixed after the first run: Kepler files name their quality column `SAP_QUALITY`. Covered by regression tests; **re-run to confirm on live data.** |
+
+Four targets are a smoke test of the real-data path, not a measurement of false-positive or recall
+rates.
 
 ## Quickstart
+
+Requires Python 3.11+, [uv](https://docs.astral.sh/uv/) and Node 22+.
+
 ```bash
-make setup      # uv sync --all-extras (includes torch)
-make test       # core + api tests
-make up         # postgres, redis, minio, mlflow (optional in Phase 0)
-make dev        # API on :8000  ->  GET /v1/health
+uv sync --all-packages --all-extras       # torch is an optional extra
+cd frontend && npm install && cd ..
 ```
 
+**Try it in demo mode (no backend, no keys):**
+
+```bash
+cd frontend && npm run dev                # http://localhost:5173
+```
+
+**Run it live against the real archives:**
+
+```bash
+# terminal 1: API
+uv run uvicorn akash_api.main:app --port 8000
+# terminal 2: one-off API key (shown once, stored hashed)
+uv run python scripts/create_api_key.py --name me --role researcher
+# terminal 3: frontend
+cd frontend && npm run dev
+```
+
+In the app open Settings, switch off demo data, leave the API address empty and paste the key. The
+key is kept per browser tab. On Windows, use the same commands in separate PowerShell windows and
+add `--no-sync` to `uv run`.
+
+Useful scripts: `scripts/diagnose_gaia.py` (check Gaia access end to end),
+`scripts/validate_real_targets.py`, `scripts/injection_recovery.py`, `scripts/preflight.py`.
+
 ## Layout
-- `packages/akash_core`: schemas, enums, ids, config (no web/ML deps)
-- `packages/akash_data`: identity, providers, storage, ingestion
-- `packages/akash_ml`: transit classifier (LightGBM + 1D CNN), calibration, conformal, OOD, registry,
-  and the anomaly engine (`anomaly/`: detectors, autoencoder, reference populations)
-- `packages/akash_fusion`: cross-survey evidence, rule-based triage, assessments, investigation pipeline
-- `packages/akash_science`: deterministic light-curve science (no ML deps)
-- `packages/akash_provenance`: provenance records + lineage
+
+- `packages/akash_core`: schemas, enums, ids, config (no web or ML dependencies)
+- `packages/akash_data`: identity resolution, archive providers, caching, validation, ingestion
+- `packages/akash_science`: deterministic light-curve science (quality, detrending, BLS, vetting)
+- `packages/akash_ml`: transit classifier, calibration, conformal sets, OOD, anomaly engine, registry
+- `packages/akash_fusion`: cross-survey evidence, triage rules, the investigation pipeline
+- `packages/akash_agent`, `akash_report`, `akash_eval`: research agent, reports, experiment lab
+- `packages/akash_provenance`: provenance records and lineage
 - `services/api`: FastAPI service (thin routers)
-- `docs/adr`: architecture decision records
-- `infra/compose`: local dependencies
+- `frontend`: React + TypeScript observatory UI
+- `docs/adr`: architecture decision records; `docs/deploy.md`: single-node deployment
+
+## Quality gates
+
+```bash
+make lint && make typecheck && make test   # ruff, mypy --strict, pytest (offline)
+make web-test && make web-build            # tsc, vitest, vite build
+make live                                  # network tests against the real archives
+```
+
+CI runs the same checks on every push.
+
+## Honest limits
+
+- Most of the pipeline was developed and tested on **synthetic** light curves and in-memory fakes.
+  Real-data coverage is the four-target run above.
+- The trained classifier and anomaly reference are not shipped, so on a fresh install those report
+  sections are empty rather than faked. Training scripts are in `scripts/`.
+- No live LLM has been exercised for the research agent; the provider is tested against a mock
+  transport and the deterministic fallback is the default.
+- Single node only: SQLite and a local object store. Postgres and S3-style storage are not built.
+- The Docker images are built by CI but have not been run by the author.
+- The frontend is tested in Chromium only.
+- Do not expose the live API publicly without reading [docs/deploy.md](docs/deploy.md): it queries
+  real archives on your behalf.
+
+See [docs/status.md](docs/status.md) for the full phase-by-phase record.
+
+## License
+
+[MIT](LICENSE)

@@ -1,9 +1,9 @@
 # Real-data validation
 
-**Status: written, not run.** The development sandbox has no outbound network, so
-`scripts/validate_real_targets.py` has never executed. All other AKASH results were obtained on
-synthetic light curves or in-memory fakes. Treat every real-data claim as unverified until you
-have run this.
+**Status: run once on a networked machine.** WASP-18 b, pi Men c and TOI-270 c passed. Kepler-10 b
+failed because Kepler files name the quality column `SAP_QUALITY`; that is fixed and covered by
+regression tests, and the target should be re-run to confirm on live data. All other AKASH results
+were obtained on synthetic light curves or in-memory fakes.
 
 ## Run it
 
