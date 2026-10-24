@@ -52,14 +52,16 @@ class MissionSpec:
     id_key: str  # primary-header key holding the target id
     segment_key: str  # SECTOR / QUARTER
     required_primary: tuple[str, ...]
-    required_table: tuple[str, ...] = (
-        "TIME", "PDCSAP_FLUX", "PDCSAP_FLUX_ERR", "SAP_FLUX", "QUALITY",
-    )
+    required_table: tuple[str, ...] = ("TIME", "PDCSAP_FLUX", "PDCSAP_FLUX_ERR", "SAP_FLUX")
+    # The quality bitmask column is named differently per mission: TESS files call it QUALITY,
+    # Kepler files call it SAP_QUALITY. The first name present in the file is used.
+    quality_cols: tuple[str, ...] = ("QUALITY",)
 
 
 TESS = MissionSpec("TESS", "TICID", "SECTOR", ("OBJECT", "TICID", "SECTOR", "RA_OBJ", "DEC_OBJ"))
 KEPLER = MissionSpec(
-    "Kepler", "KEPLERID", "QUARTER", ("OBJECT", "KEPLERID", "QUARTER", "RA_OBJ", "DEC_OBJ")
+    "Kepler", "KEPLERID", "QUARTER", ("OBJECT", "KEPLERID", "QUARTER", "RA_OBJ", "DEC_OBJ"),
+    quality_cols=("SAP_QUALITY", "QUALITY"),
 )
 MISSIONS = {"TESS": TESS, "Kepler": KEPLER}
 
@@ -83,8 +85,12 @@ def parse_lightcurve_fits(content: bytes, mission: MissionSpec) -> NormalizedLig
         data = hdul[1].data
         names = set(data.columns.names)
         miss_cols = [c for c in mission.required_table if c not in names]
+        qcol = next((c for c in mission.quality_cols if c in names), None)
+        if qcol is None:
+            miss_cols.append("/".join(mission.quality_cols))
         if miss_cols:
             raise ValidationFailure(f"missing table columns: {miss_cols}")
+        assert qcol is not None
         if str(th.get("TIMESYS", "")).strip().upper() != "TDB":
             raise ValidationFailure(f"unexpected TIMESYS {th.get('TIMESYS')!r}, expected TDB")
         if "BJDREFI" not in th:
@@ -99,7 +105,7 @@ def parse_lightcurve_fits(content: bytes, mission: MissionSpec) -> NormalizedLig
         def col(name: str) -> np.ndarray:
             return _f64(data[name])[keep][order]
 
-        quality = np.array(data["QUALITY"], dtype=np.int64)[keep][order].astype(np.int32)
+        quality = np.array(data[qcol], dtype=np.int64)[keep][order].astype(np.int32)
         meta = {
             "mission": mission.name,
             "object": str(ph["OBJECT"]).strip(),

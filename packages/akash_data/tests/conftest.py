@@ -31,7 +31,7 @@ def make_fits(
         fits.Column("SAP_FLUX", "E", array=flux * 1.01),
         fits.Column("PDCSAP_FLUX", "E", array=flux),
         fits.Column("PDCSAP_FLUX_ERR", "E", array=np.full(n, 1.0)),
-        fits.Column("QUALITY", "J", array=q),
+        fits.Column("QUALITY" if mission == "TESS" else "SAP_QUALITY", "J", array=q),
     ]
     tab = fits.BinTableHDU.from_columns(cols)
     tab.header["TIMESYS"], tab.header["BJDREFF"] = timesys, 0.0
