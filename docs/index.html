@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AKASH | AI Astronomical Discovery Engine</title>
+    <meta
+      name="description"
+      content="AKASH is an evidence-first astronomical investigation system that resolves stars, analyzes light curves, and keeps each finding auditable."
+    />
+    <style>
+      :root {
+        --bg: #07111d;
+        --bg-soft: #0b1a2d;
+        --panel: rgba(16, 29, 46, 0.88);
+        --panel-strong: #12233d;
+        --line: rgba(122, 146, 182, 0.26);
+        --text: #ebf3ff;
+        --muted: #a9bad7;
+        --cyan: #66d9ff;
+        --blue: #79a8ff;
+        --violet: #b39cff;
+        --green: #7ef0ad;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        background:
+          radial-gradient(circle at top, rgba(102, 217, 255, 0.18), transparent 30%),
+          linear-gradient(180deg, #040b13 0%, var(--bg) 100%);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      a { color: var(--cyan); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      .wrap {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        backdrop-filter: blur(8px);
+        background: rgba(7, 17, 29, 0.72);
+        border-bottom: 1px solid var(--line);
+        z-index: 10;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 18px 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+
+      .orb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--cyan), var(--violet));
+        box-shadow: 0 0 18px rgba(102, 217, 255, 0.8);
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 0.8rem 1.2rem;
+        border-radius: 999px;
+        border: 1px solid rgba(121, 168, 255, 0.5);
+        background: linear-gradient(135deg, rgba(121, 168, 255, 0.15), rgba(102, 217, 255, 0.08));
+        color: var(--text);
+        font-weight: 600;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+      }
+
+      .btn:hover {
+        text-decoration: none;
+        transform: translateY(-1px);
+        border-color: rgba(102, 217, 255, 0.8);
+      }
+
+      .hero {
+        padding: 72px 0 32px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 32px;
+        align-items: center;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        padding: 0.42rem 0.8rem;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(102, 217, 255, 0.05);
+        color: var(--cyan);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      h1 {
+        margin: 18px 0 16px;
+        font-size: clamp(2.5rem, 5vw, 4.3rem);
+        line-height: 1.05;
+        letter-spacing: -0.055em;
+      }
+
+      .lead {
+        margin: 0 0 24px;
+        max-width: 62ch;
+        color: var(--muted);
+        font-size: 1.08rem;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin: 24px 0 30px;
+      }
+
+      .pill-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.45rem 0.8rem;
+        color: var(--muted);
+        background: rgba(18, 35, 61, 0.7);
+        font-size: 0.82rem;
+      }
+
+      .hero-card,
+      .feature,
+      .stats {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.27);
+      }
+
+      .hero-card {
+        overflow: hidden;
+      }
+
+      .hero-card img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .section {
+        padding: 22px 0 12px;
+      }
+
+      .section-title {
+        margin: 0 0 22px;
+        font-size: clamp(1.6rem, 3vw, 2.4rem);
+        letter-spacing: -0.045em;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .feature {
+        padding: 22px;
+      }
+
+      .feature h3 {
+        margin: 0 0 8px;
+        font-size: 1.15rem;
+      }
+
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .stats {
+        margin-top: 30px;
+        padding: 18px 20px;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .stat {
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: rgba(11, 26, 45, 0.7);
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 1.4rem;
+        margin-bottom: 4px;
+      }
+
+      .gallery {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        margin-top: 18px;
+      }
+
+      .gallery-item {
+        overflow: hidden;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+      }
+
+      .gallery-item img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .video-box {
+        margin-top: 22px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 20px;
+        overflow: hidden;
+      }
+
+      video {
+        display: block;
+        width: 100%;
+        max-height: 480px;
+        background: #000;
+      }
+
+      footer {
+        padding: 34px 0 74px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      @media (max-width: 900px) {
+        .hero-grid,
+        .feature-grid,
+        .stats,
+        .gallery {
+          grid-template-columns: 1fr;
+        }
+
+        .nav {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap nav">
+        <div class="brand"><span class="orb"></span> AKASH</div>
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="#overview">Overview</a>
+          <a href="#features">Features</a>
+          <a href="#screens">Screenshots</a>
+          <a href="https://github.com/Amankumar1801/akash" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero" id="overview">
+        <div class="hero-grid">
+          <div>
+            <span class="eyebrow">AI Astronomical Discovery Engine</span>
+            <h1>Evidence-first exoplanet investigation.</h1>
+            <p class="lead">
+              AKASH resolves star targets, retrieves real TESS/Kepler light curves, and surfaces
+              transit evidence with provenance, cross-survey checks, and explicit uncertainty — so
+              every finding stays auditable instead of being collapsed into a single opaque score.
+            </p>
+            <div class="cta-row">
+              <a class="btn" href="https://github.com/Amankumar1801/akash" target="_blank" rel="noreferrer">View repository</a>
+              <a class="btn" href="https://github.com/Amankumar1801/akash/blob/master/README.md" target="_blank" rel="noreferrer">Read the guide</a>
+            </div>
+            <div class="pill-list" aria-label="Platform features">
+              <span class="pill">TESS / Kepler</span>
+              <span class="pill">Gaia checks</span>
+              <span class="pill">Provenance</span>
+              <span class="pill">Evidence rings</span>
+              <span class="pill">Report export</span>
+            </div>
+          </div>
+
+          <div class="hero-card">
+            <img src="./img/home.jpg" alt="AKASH observatory dashboard" />
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <h2 class="section-title">What AKASH is built to do</h2>
+        <div class="feature-grid">
+          <article class="feature">
+            <h3>Investigate</h3>
+            <p>Resolve a target by name, download real archive data, detrend light curves, and search for repeating transit-like dips.</p>
+          </article>
+          <article class="feature">
+            <h3>Keep evidence separate</h3>
+            <p>Classifier predictions, anomaly signals, catalog matches, and interpretation stay in separate channels rather than being merged into one magical score.</p>
+          </article>
+          <article class="feature">
+            <h3>Report honestly</h3>
+            <p>Follow transparent uncertainty, conformal sets, OOD flags, and provenance lineage from each step back to its source input.</p>
+          </article>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><strong>Evidence-first</strong> Separate signals, no hidden blending</div>
+          <div class="stat"><strong>Provenance</strong> Hash-linked steps with traceability</div>
+          <div class="stat"><strong>Gaia-aware</strong> Catalog and stellar checks included</div>
+          <div class="stat"><strong>Research-ready</strong> Structured report and citation pipeline</div>
+        </div>
+      </section>
+
+      <section class="section" id="screens">
+        <h2 class="section-title">Screenshots</h2>
+        <div class="gallery">
+          <div class="gallery-item"><img src="./img/evidence.jpg" alt="Evidence ring screenshot" /></div>
+          <div class="gallery-item"><img src="./img/readouts.jpg" alt="Readout screenshot" /></div>
+          <div class="gallery-item"><img src="./img/provenance.jpg" alt="Provenance screenshot" /></div>
+          <div class="gallery-item"><img src="./img/candidates.jpg" alt="Candidate triage screenshot" /></div>
+        </div>
+
+        <div class="video-box">
+          <video controls preload="metadata" poster="./img/home.jpg">
+            <source src="./akash-demo-v2.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      AKASH is designed for investigation and evidence review — not autonomous discovery claims.
+    </footer>
+  </body>
+</html>
