@@ -33,6 +33,12 @@ a prediction, an anomaly is a reason to look, and a candidate is not a planet.
 <td><img src="docs/img/provenance.jpg" alt="Provenance: hash-chained steps"></td>
 </tr></table>
 
+## Demo video
+
+Watch the 30-second project overview and architecture walkthrough:
+
+[AKASH demo video](docs/akash-demo-v2.mp4)
+
 ## Real-data results
 
 Run on live archives with `scripts/validate_real_targets.py` (details in
