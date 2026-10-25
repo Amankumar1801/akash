@@ -1,16 +1,22 @@
 # AKASH: AI Astronomical Discovery Engine
 
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Node 22+](https://img.shields.io/badge/Node-22%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
 > **Name a star. See what its light can and can't tell you.**
 
-AKASH takes a star, fetches its real TESS or Kepler light curves, searches them for repeating dips,
-checks every finding against the catalogs and Gaia, and keeps **each piece of evidence as its own
-line**: measured facts, model predictions, anomaly scores, cross-survey checks and interpretation
-never get blended into one number.
+AKASH is an evidence-first investigation system for exoplanet search. It resolves a target from
+SIMBAD/Gaia/TIC/KIC, pulls real TESS or Kepler light curves from MAST, runs a transit search, and
+keeps each signal component separated so you can inspect the measurements, model priors, classifier
+output, and catalog checks without pretending they are all the same thing.
 
 **AKASH assists investigation; it does not independently establish discoveries.** A model output is
 a prediction, an anomaly is a reason to look, and a candidate is not a planet.
 
-![Evidence rings: every finding is its own mark, nothing is averaged into a score](docs/img/evidence.jpg)
+<div align="center">
+  <img src="docs/img/home.jpg" alt="AKASH home view" width="1000" />
+</div>
 
 <sub>Screenshots use the built-in synthetic demo data (fake star IDs), not real discoveries.</sub>
 
@@ -38,6 +44,18 @@ a prediction, an anomaly is a reason to look, and a candidate is not a planet.
 Watch the 30-second project overview and architecture walkthrough:
 
 [AKASH demo video](docs/akash-demo-v2.mp4)
+
+## Screenshots
+
+<div align="center">
+  <img src="docs/img/evidence.jpg" alt="Evidence ring" width="900" />
+  <br /><br />
+  <img src="docs/img/readouts.jpg" alt="Readout panel" width="900" />
+  <br /><br />
+  <img src="docs/img/provenance.jpg" alt="Provenance view" width="900" />
+  <br /><br />
+  <img src="docs/img/candidates.jpg" alt="Candidate triage view" width="900" />
+</div>
 
 ## Real-data results
 
